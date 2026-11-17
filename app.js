@@ -158,11 +158,13 @@ async function logout() {
 
 
 /* RESELLER REGISTRATION */
+/* RESELLER REGISTRATION */
 
 async function resellerRegister() {
   const name = document.getElementById("resellerName").value.trim();
   const email = document.getElementById("resellerEmail").value.trim();
   const password = document.getElementById("resellerPassword").value;
+  const referralCode = document.getElementById("referralCode").value.trim().toUpperCase();
   const msg = document.getElementById("resellerMsg");
 
   if (!name || !email || !password) {
@@ -181,7 +183,10 @@ async function resellerRegister() {
     email: email,
     password: password,
     options: {
-      data: { full_name: name }
+      data: {
+        full_name: name,
+        referral_code: referralCode || null
+      }
     }
   });
 
@@ -196,6 +201,7 @@ async function resellerRegister() {
   document.getElementById("resellerName").value = "";
   document.getElementById("resellerEmail").value = "";
   document.getElementById("resellerPassword").value = "";
+  document.getElementById("referralCode").value = "";
 }
 
 
