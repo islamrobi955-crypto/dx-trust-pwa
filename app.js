@@ -6,6 +6,7 @@
 /* SUPABASE CONNECTION */
 
 const SUPABASE_URL = "https://oloasnzcnqeakfpwtttc.supabase.co";
+
 const SUPABASE_KEY = "sb_publishable_3Omy4ITAX9HIVvSf4PVQXA_2PKaOxl5";
 
 const db = window.supabase.createClient(
@@ -13,13 +14,90 @@ const db = window.supabase.createClient(
   SUPABASE_KEY
 );
 
+
+/* GLOBAL VARIABLES */
+
 let selectedProductId = null;
 let selectedProductPrice = 0;
 let currentResellerUser = null;
 let resellerSelectedProductId = null;
 
 
-/* PAGE CONTROL */
+/* GET PRODUCT IMAGES */
+
+function getProductImages(product) {
+  if (
+    Array.isArray(product.image_urls) &&
+    product.image_urls.length > 0
+  ) {
+    return product.image_urls.filter(Boolean);
+  }
+
+  return product.image_url
+    ? [product.image_url]
+    : [];
+}
+
+
+/* SHOW PRODUCT IMAGE GALLERY */
+
+function appendProductGallery(container, product) {
+  const images = getProductImages(product);
+
+  if (!images.length) return;
+
+  const gallery = document.createElement("div");
+  gallery.style.marginBottom = "12px";
+
+  const mainImage = document.createElement("img");
+
+  mainImage.src = images[0];
+  mainImage.alt = product.name || "Product";
+  mainImage.style.width = "100%";
+  mainImage.style.maxWidth = "350px";
+  mainImage.style.height = "220px";
+  mainImage.style.objectFit = "contain";
+  mainImage.style.borderRadius = "10px";
+  mainImage.style.display = "block";
+
+  gallery.appendChild(mainImage);
+
+  if (images.length > 1) {
+    const thumbnails = document.createElement("div");
+
+    thumbnails.style.display = "flex";
+    thumbnails.style.flexWrap = "wrap";
+    thumbnails.style.gap = "7px";
+    thumbnails.style.marginTop = "8px";
+
+    images.forEach(url => {
+      const thumb = document.createElement("img");
+
+      thumb.src = url;
+      thumb.alt = "Product image";
+      thumb.style.width = "58px";
+      thumb.style.height = "58px";
+      thumb.style.objectFit = "cover";
+      thumb.style.borderRadius = "6px";
+      thumb.style.cursor = "pointer";
+      thumb.style.border = "2px solid transparent";
+
+      thumb.onclick = () => {
+        mainImage.src = url;
+      };
+
+      thumbnails.appendChild(thumb);
+    });
+
+    gallery.appendChild(thumbnails);
+  }
+
+  container.appendChild(gallery);
+}
+
+/* =====================================
+   PAGE CONTROL
+===================================== */
 
 function show(id) {
   const section = document.getElementById(id);
@@ -34,22 +112,32 @@ function show(id) {
   });
 
   section.classList.add("active");
+
   window.scrollTo(0, 0);
 }
+
 
 function openLogin() {
   show("login");
 }
 
+
 function showPage(id) {
   ["dashboard", "products", "orders"].forEach(x => {
     const el = document.getElementById(x);
-    if (el) el.style.display = x === id ? "block" : "none";
+
+    if (el) {
+      el.style.display = x === id ? "block" : "none";
+    }
   });
 
-  if (id === "products") loadProducts();
+  if (id === "products") {
+    loadProducts();
+  }
 
-  if (id === "orders") loadOrders();
+  if (id === "orders") {
+    loadOrders();
+  }
 
   if (id === "dashboard") {
     loadBonusSettings();
@@ -59,11 +147,15 @@ function showPage(id) {
 }
 
 
-/* ADMIN LOGIN */
+/* =====================================
+   ADMIN LOGIN
+===================================== */
 
 async function adminLogin() {
   const email = document.getElementById("email").value.trim();
+
   const password = document.getElementById("password").value;
+
   const msg = document.getElementById("loginMsg");
 
   if (!email || !password) {
@@ -92,7 +184,9 @@ async function adminLogin() {
 }
 
 
-/* VERIFY USER ROLE */
+/* =====================================
+   VERIFY USER ROLE
+===================================== */
 
 async function verifyAdmin(user, msgId = "loginMsg") {
   const msg = document.getElementById(msgId);
@@ -113,6 +207,7 @@ async function verifyAdmin(user, msgId = "loginMsg") {
     }
 
     show(msgId === "resellerMsg" ? "resellerAuth" : "login");
+
     return;
   }
 
@@ -139,6 +234,7 @@ async function verifyAdmin(user, msgId = "loginMsg") {
       "Admin: " + (p.full_name || user.email);
 
     show("panel");
+
     showPage("dashboard");
 
     return;
@@ -147,27 +243,39 @@ async function verifyAdmin(user, msgId = "loginMsg") {
   await db.auth.signOut();
 
   currentResellerUser = null;
+
   show("store");
 }
 
 
-/* ADMIN LOGOUT */
+/* =====================================
+   ADMIN LOGOUT
+===================================== */
 
 async function logout() {
   await db.auth.signOut();
+
   currentResellerUser = null;
 
   document.getElementById("password").value = "";
+
   show("store");
 }
 
-
-/* RESELLER REGISTRATION */
+/* =====================================
+   RESELLER REGISTRATION
+===================================== */
 
 async function resellerRegister() {
-  const name = document.getElementById("resellerName").value.trim();
-  const email = document.getElementById("resellerEmail").value.trim();
-  const password = document.getElementById("resellerPassword").value;
+  const name =
+    document.getElementById("resellerName").value.trim();
+
+  const email =
+    document.getElementById("resellerEmail").value.trim();
+
+  const password =
+    document.getElementById("resellerPassword").value;
+
   const referralCode =
     document.getElementById("referralCode").value.trim().toUpperCase();
 
@@ -211,7 +319,9 @@ async function resellerRegister() {
 }
 
 
-/* RESELLER LOGIN */
+/* =====================================
+   RESELLER LOGIN
+===================================== */
 
 async function resellerLogin() {
   const email =
@@ -243,7 +353,9 @@ async function resellerLogin() {
 }
 
 
-/* RESELLER LOGOUT */
+/* =====================================
+   RESELLER LOGOUT
+===================================== */
 
 async function resellerLogout() {
   await db.auth.signOut();
@@ -253,9 +365,9 @@ async function resellerLogout() {
 
   show("store");
 }
-
-
-/* LOAD STORE PRODUCTS */
+/* =====================================
+   LOAD STORE PRODUCTS
+===================================== */
 
 async function loadStoreProducts() {
   const list = document.getElementById("storeProducts");
@@ -285,12 +397,8 @@ async function loadStoreProducts() {
     const card = document.createElement("div");
     card.className = "card";
 
-    if (p.image_url) {
-      const img = document.createElement("img");
-      img.src = p.image_url;
-      img.alt = p.name;
-      card.appendChild(img);
-    }
+    // একাধিক পণ্যের ছবি দেখাবে
+    appendProductGallery(card, p);
 
     const title = document.createElement("h3");
     title.textContent = p.name;
@@ -308,14 +416,16 @@ async function loadStoreProducts() {
     const btn = document.createElement("button");
     btn.textContent = "অর্ডার করুন";
     btn.onclick = () => openOrder(p.id, p.name, p.price);
-    card.appendChild(btn);
 
+    card.appendChild(btn);
     list.appendChild(card);
   });
 }
 
 
-/* CUSTOMER ORDER FORM */
+/* =====================================
+   CUSTOMER ORDER FORM
+===================================== */
 
 function openOrder(id, name, price) {
   selectedProductId = id;
@@ -325,6 +435,7 @@ function openOrder(id, name, price) {
     name + " — ৳" + price;
 
   document.getElementById("orderForm").style.display = "block";
+
   document.getElementById("orderMsg").textContent = "";
 
   document.getElementById("orderForm").scrollIntoView({
@@ -332,19 +443,31 @@ function openOrder(id, name, price) {
   });
 }
 
+
 function closeOrder() {
   document.getElementById("orderForm").style.display = "none";
+
   selectedProductId = null;
 }
 
 
-/* CUSTOMER PLACE ORDER */
+/* =====================================
+   CUSTOMER PLACE ORDER
+===================================== */
 
 async function placeOrder() {
-  const name = document.getElementById("customerName").value.trim();
-  const phone = document.getElementById("customerPhone").value.trim();
-  const address = document.getElementById("customerAddress").value.trim();
-  const quantity = Number(document.getElementById("orderQuantity").value);
+  const name =
+    document.getElementById("customerName").value.trim();
+
+  const phone =
+    document.getElementById("customerPhone").value.trim();
+
+  const address =
+    document.getElementById("customerAddress").value.trim();
+
+  const quantity =
+    Number(document.getElementById("orderQuantity").value);
+
   const msg = document.getElementById("orderMsg");
 
   if (!selectedProductId) {
@@ -385,62 +508,86 @@ async function placeOrder() {
   document.getElementById("orderQuantity").value = "1";
 
   selectedProductId = null;
+
 }
 
-
-/* ADMIN ADD PRODUCT */
+/* =====================================
+   ADMIN ADD PRODUCT
+   MULTIPLE IMAGE UPLOAD
+===================================== */
 
 async function addProduct() {
-  const name = document.getElementById("productName").value.trim();
+  const name =
+    document.getElementById("productName").value.trim();
 
   const description =
     document.getElementById("productDescription").value.trim();
 
-  const price = Number(
-    document.getElementById("productPrice").value
-  );
+  const price =
+    Number(document.getElementById("productPrice").value);
 
-  const file =
-    document.getElementById("productImageFile").files[0];
+  const input =
+    document.getElementById("productImageFile");
 
-  const msg = document.getElementById("productMsg");
+  const files =
+    Array.from(input.files || []);
+
+  const msg =
+    document.getElementById("productMsg");
 
   if (!name || !Number.isFinite(price) || price <= 0) {
     msg.textContent = "পণ্যের নাম ও সঠিক দাম লিখুন।";
     return;
   }
 
-  let imageUrl = null;
+  if (files.length > 5) {
+    msg.textContent = "সর্বোচ্চ ৫টি ছবি নির্বাচন করতে পারবে।";
+    return;
+  }
 
-  if (file) {
+  for (const file of files) {
     if (!file.type.startsWith("image/")) {
       msg.textContent = "শুধু ছবির ফাইল নির্বাচন করো।";
       return;
     }
 
-    msg.textContent = "ছবি আপলোড হচ্ছে...";
-
-    const extension = file.name.split(".").pop();
-
-    const fileName =
-      Date.now() + "-" +
-      Math.random().toString(36).slice(2) +
-      "." + extension;
-
-    const { error: uploadError } = await db.storage
-      .from("product-images")
-      .upload(fileName, file);
-
-    if (uploadError) {
-      msg.textContent = "ছবি আপলোড সমস্যা: " + uploadError.message;
+    if (file.size > 5 * 1024 * 1024) {
+      msg.textContent =
+        "প্রতিটি ছবির সাইজ সর্বোচ্চ ৫ MB হতে পারবে।";
       return;
     }
+  }
 
-    const { data: publicData } = db.storage
-      .from("product-images")
-      .getPublicUrl(fileName);
+  const imageUrls = [];
 
-    imageUrl = publicData.publicUrl;
+  if (files.length > 0) {
+    msg.textContent = "ছবি আপলোড হচ্ছে...";
+
+    for (const file of files) {
+      const extension =
+        file.name.split(".").pop().toLowerCase();
+
+      const fileName =
+        Date.now() + "-" +
+        Math.random().toString(36).slice(2) +
+        "." + extension;
+
+      const { error: uploadError } = await db.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        msg.textContent =
+          "ছবি আপলোড সমস্যা: " + uploadError.message;
+        return;
+      }
+
+      const { data: publicData } = db.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      imageUrls.push(publicData.publicUrl);
+    }
   }
 
   msg.textContent = "পণ্য সংরক্ষণ হচ্ছে...";
@@ -449,11 +596,13 @@ async function addProduct() {
     name,
     description,
     price,
-    image_url: imageUrl
+    image_url: imageUrls[0] || null,
+    image_urls: imageUrls
   });
 
   if (error) {
-    msg.textContent = "পণ্য যোগ সমস্যা: " + error.message;
+    msg.textContent =
+      "পণ্য যোগ সমস্যা: " + error.message;
     return;
   }
 
@@ -462,14 +611,14 @@ async function addProduct() {
   document.getElementById("productName").value = "";
   document.getElementById("productDescription").value = "";
   document.getElementById("productPrice").value = "";
-  document.getElementById("productImageFile").value = "";
+  input.value = "";
 
   await loadProducts();
   await loadStoreProducts();
 }
-
-
-/* DELETE PRODUCT */
+/* =====================================
+   DELETE PRODUCT
+===================================== */
 
 async function deleteProduct(id) {
   if (!confirm("পণ্যটি মুছে ফেলবে?")) return;
@@ -491,7 +640,9 @@ async function deleteProduct(id) {
 }
 
 
-/* ADMIN LOAD ORDERS */
+/* =====================================
+   ADMIN LOAD ORDERS
+===================================== */
 
 async function loadOrders() {
   const list = document.getElementById("orderList");
@@ -537,13 +688,18 @@ async function loadOrders() {
 
     if (o.status !== "completed") {
       const btn = document.createElement("button");
+
       btn.textContent = "অর্ডার সম্পন্ন";
       btn.onclick = () => completeOrder(o.id);
+
       card.appendChild(btn);
+
     } else {
       const done = document.createElement("p");
+
       done.className = "status";
       done.textContent = "অর্ডার সম্পন্ন হয়েছে";
+
       card.appendChild(done);
     }
 
@@ -552,7 +708,9 @@ async function loadOrders() {
 }
 
 
-/* COMPLETE ORDER */
+/* =====================================
+   COMPLETE ORDER
+===================================== */
 
 async function completeOrder(id) {
   if (!confirm("এই অর্ডারটি সম্পন্ন করতে চাও?")) return;
@@ -577,11 +735,15 @@ async function completeOrder(id) {
   }
 
   alert("অর্ডার সম্পন্ন হয়েছে।");
+
   await loadOrders();
-}
+           }
+/* =====================================
+   PART 7: RESELLER PRODUCTS & ORDER
+===================================== */
 
 
-/* RESELLER LOAD PRODUCTS */
+/* LOAD RESELLER PRODUCTS */
 
 async function loadResellerProducts() {
   const box = document.getElementById("resellerProducts");
@@ -592,25 +754,43 @@ async function loadResellerProducts() {
 
   const { data, error } = await db
     .from("products")
-    .select("id,name,price")
+    .select("id,name,description,price,image_url,image_urls")
     .order("id", { ascending: false });
 
   if (error) {
-    box.textContent = "পণ্য সমস্যা: " + error.message;
+    box.textContent = "পণ্য লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
   box.innerHTML = "";
 
   if (!data || data.length === 0) {
-    box.textContent = "কোনো পণ্য নেই।";
+    box.textContent = "এখনো কোনো পণ্য যোগ করা হয়নি।";
     return;
   }
 
   data.forEach(p => {
-    const btn = document.createElement("button");
+    const card = document.createElement("div");
 
-    btn.textContent = p.name + " — ৳" + p.price;
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "12px";
+
+    appendProductGallery(card, p);
+
+    const name = document.createElement("h3");
+    name.textContent = p.name;
+
+    const description = document.createElement("p");
+    description.textContent = p.description || "";
+
+    const price = document.createElement("p");
+    price.textContent = "মূল্য: ৳" + p.price;
+
+    const btn = document.createElement("button");
+    btn.textContent = "এই পণ্য নির্বাচন করুন";
 
     btn.onclick = () => {
       resellerSelectedProductId = p.id;
@@ -619,18 +799,26 @@ async function loadResellerProducts() {
         b.style.outline = "none";
       });
 
-      btn.style.outline = "2px solid white";
+      btn.style.outline = "2px solid green";
 
-      document.getElementById("resellerOrderMsg").textContent =
-        "নির্বাচিত পণ্য: " + p.name;
+      const msg = document.getElementById("resellerOrderMsg");
+
+      if (msg) {
+        msg.textContent = "নির্বাচিত পণ্য: " + p.name;
+      }
     };
 
-    box.appendChild(btn);
+    card.appendChild(name);
+    card.appendChild(description);
+    card.appendChild(price);
+    card.appendChild(btn);
+
+    box.appendChild(card);
   });
 }
 
 
-/* RESELLER PLACE ORDER */
+/* PLACE RESELLER ORDER */
 
 async function placeResellerOrder() {
   if (!currentResellerUser) {
@@ -638,69 +826,88 @@ async function placeResellerOrder() {
     return;
   }
 
-  const name =
-    document.getElementById("resellerCustomerName").value.trim();
-
-  const phone =
-    document.getElementById("resellerCustomerPhone").value.trim();
-
-  const address =
-    document.getElementById("resellerCustomerAddress").value.trim();
-
-  const quantity =
-    Number(document.getElementById("resellerQuantity").value);
-
-  const msg = document.getElementById("resellerOrderMsg");
-
   if (!resellerSelectedProductId) {
-    msg.textContent = "একটি পণ্য নির্বাচন করো।";
+    alert("আগে একটি পণ্য নির্বাচন করো।");
     return;
   }
 
-  if (!name || !phone || !address) {
-    msg.textContent = "কাস্টমারের সব তথ্য পূরণ করো।";
+  const name = document.getElementById("resellerCustomerName")?.value.trim();
+  const phone = document.getElementById("resellerCustomerPhone")?.value.trim();
+  const address = document.getElementById("resellerCustomerAddress")?.value.trim();
+  const quantity = Number(
+    document.getElementById("resellerQuantity")?.value
+  );
+
+  if (!name || !phone || !address || !quantity || quantity < 1) {
+    alert("সব তথ্য সঠিকভাবে পূরণ করো।");
     return;
   }
 
-  if (!Number.isInteger(quantity) || quantity < 1) {
-    msg.textContent = "সঠিক পরিমাণ লিখো।";
+  const { data: product, error: productError } = await db
+    .from("products")
+    .select("id,name,price")
+    .eq("id", resellerSelectedProductId)
+    .single();
+
+  if (productError || !product) {
+    alert("পণ্যটি পাওয়া যায়নি। আবার নির্বাচন করো।");
     return;
   }
 
-  msg.textContent = "অর্ডার জমা হচ্ছে...";
+  const total = Number(product.price) * quantity;
 
-  const { error } = await db.from("orders").insert({
-    product_id: resellerSelectedProductId,
-    customer_name: name,
-    phone,
-    address,
-    quantity,
-    reseller_id: currentResellerUser.id,
-    status: "pending"
-  });
+  const { error } = await db
+    .from("orders")
+    .insert([{
+      product_id: product.id,
+      product_name: product.name,
+      price: product.price,
+      quantity: quantity,
+      total: total,
+      customer_name: name,
+      customer_phone: phone,
+      customer_address: address,
+      reseller_id: currentResellerUser.id,
+      status: "pending"
+    }]);
 
   if (error) {
-    msg.textContent = "অর্ডার সমস্যা: " + error.message;
+    alert("অর্ডার করা যায়নি: " + error.message);
+    console.error(error);
     return;
   }
 
-  msg.textContent = "অর্ডার সফলভাবে জমা হয়েছে।";
+  alert("রিসেলার অর্ডার সফলভাবে জমা হয়েছে।");
 
   document.getElementById("resellerCustomerName").value = "";
   document.getElementById("resellerCustomerPhone").value = "";
   document.getElementById("resellerCustomerAddress").value = "";
-  document.getElementById("resellerQuantity").value = "1";
+  document.getElementById("resellerQuantity").value = 1;
+
+  resellerSelectedProductId = null;
+
+  const msg = document.getElementById("resellerOrderMsg");
+
+  if (msg) {
+    msg.textContent = "";
+  }
 
   await loadResellerOrders();
-}
+  }
 
-
-/* RESELLER ORDER LIST */
+/* =====================================
+   PART 8: RESELLER ORDERS
+===================================== */
 
 async function loadResellerOrders() {
-  const box = document.getElementById("resellerOrderList");
+  const box = document.getElementById("resellerOrders");
 
-  if (!box || !currentResellerUser) return;
+  if (!box) return;
+
+  if (!currentResellerUser) {
+    box.textContent = "রিসেলার লগইন করা নেই।";
+    return;
+  }
 
   box.textContent = "অর্ডার লোড হচ্ছে...";
 
@@ -708,259 +915,323 @@ async function loadResellerOrders() {
     .from("orders")
     .select("*")
     .eq("reseller_id", currentResellerUser.id)
-    .order("created_at", { ascending: false });
+    .order("id", { ascending: false });
 
   if (error) {
-    box.textContent = "অর্ডার সমস্যা: " + error.message;
+    box.textContent = "অর্ডার লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
   box.innerHTML = "";
 
   if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো অর্ডার জমা হয়নি।";
+    box.textContent = "তুমি এখনো কোনো অর্ডার করোনি।";
     return;
   }
 
   data.forEach(order => {
-    const item = document.createElement("div");
-    item.className = "card";
+    const card = document.createElement("div");
 
-    item.textContent =
-      "অর্ডার ID: " + order.id +
-      "\nকাস্টমার: " + order.customer_name +
-      "\nমোবাইল: " + order.phone +
-      "\nপরিমাণ: " + order.quantity +
-      "\nঅবস্থা: " + order.status;
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "10px";
 
-    box.appendChild(item);
+    const title = document.createElement("h3");
+    title.textContent = order.product_name || "পণ্য";
+
+    const customer = document.createElement("p");
+    customer.textContent =
+      "কাস্টমারের নাম: " + (order.customer_name || "");
+
+    const phone = document.createElement("p");
+    phone.textContent =
+      "মোবাইল: " + (order.customer_phone || "");
+
+    const quantity = document.createElement("p");
+    quantity.textContent =
+      "পরিমাণ: " + (order.quantity || 1);
+
+    const total = document.createElement("p");
+    total.textContent =
+      "মোট মূল্য: ৳" + (order.total || 0);
+
+    const status = document.createElement("p");
+    status.textContent =
+      "অর্ডারের অবস্থা: " + (order.status || "pending");
+
+    card.appendChild(title);
+    card.appendChild(customer);
+    card.appendChild(phone);
+    card.appendChild(quantity);
+    card.appendChild(total);
+    card.appendChild(status);
+
+    box.appendChild(card);
   });
-}
-
-
-/* RESELLER EARNINGS AND MONTHLY SALES */
+  }
+/* =====================================
+   PART 9: RESELLER EARNINGS & BONUS
+===================================== */
 
 async function loadResellerSummary() {
   if (!currentResellerUser) return;
 
+  const userId = currentResellerUser.id;
+
+  /* RESELLER COMMISSION */
+
   const { data: profile, error: profileError } = await db
     .from("profiles")
-    .select("commission_balance,referral_balance,bonus_balance,referral_code")
-    .eq("id", currentResellerUser.id)
-    .maybeSingle();
+    .select("commission_balance")
+    .eq("id", userId)
+    .single();
 
   if (profileError) {
-    document.getElementById("resellerEarnings").textContent =
-      "আয়ের হিসাব সমস্যা: " + profileError.message;
-    return;
+    console.error("Profile error:", profileError);
   }
 
-  const commission = Number(profile?.commission_balance || 0);
-  const referral = Number(profile?.referral_balance || 0);
-  const bonus = Number(profile?.bonus_balance || 0);
+  const earningsBox = document.getElementById("resellerEarnings");
 
-  const total = commission + referral + bonus;
-
-  document.getElementById("resellerEarnings").textContent =
-    "৳" + commission;
-
-  document.getElementById("referralEarnings").textContent =
-    "৳" + referral;
-
-  const withdrawable = document.getElementById("withdrawableBalance");
-
-  if (withdrawable) {
-    withdrawable.textContent = "৳" + total.toFixed(2);
+  if (earningsBox) {
+    earningsBox.textContent =
+      "কমিশন আয়: ৳" +
+      Number(profile?.commission_balance || 0).toFixed(2);
   }
 
-  document.getElementById("myReferralCode").textContent =
-    profile?.referral_code || "কোড পাওয়া যায়নি";
+
+  /* CURRENT MONTH SALES */
 
   const now = new Date();
 
-  const start = new Date(
+  const monthStart = new Date(
     now.getFullYear(),
     now.getMonth(),
     1
-  ).toISOString();
+  );
 
-  const { data: orders, error: orderError } = await db
+  const { data: orders, error: ordersError } = await db
     .from("orders")
     .select("product_id,quantity,created_at,status")
-    .eq("reseller_id", currentResellerUser.id)
+    .eq("reseller_id", userId)
     .eq("status", "completed")
-    .gte("created_at", start);
+    .gte("created_at", monthStart.toISOString());
 
-  if (orderError) {
-    document.getElementById("resellerSales").textContent =
-      "বিক্রির হিসাব সমস্যা: " + orderError.message;
-    return;
+  if (ordersError) {
+    console.error("Monthly orders error:", ordersError);
   }
 
-  const ids = [...new Set((orders || []).map(o => o.product_id))];
+  let monthlySales = 0;
 
-  let products = [];
+  if (orders && orders.length > 0) {
+    const productIds = [
+      ...new Set(orders.map(o => o.product_id).filter(Boolean))
+    ];
 
-  if (ids.length) {
-    const { data, error } = await db
+    const { data: products, error: productsError } = await db
       .from("products")
       .select("id,price")
-      .in("id", ids);
+      .in("id", productIds);
 
-    if (error) {
-      document.getElementById("resellerSales").textContent =
-        "পণ্যের হিসাব সমস্যা: " + error.message;
-      return;
+    if (productsError) {
+      console.error("Products error:", productsError);
     }
 
-    products = data || [];
+    const priceMap = {};
+
+    (products || []).forEach(p => {
+      priceMap[p.id] = Number(p.price || 0);
+    });
+
+    orders.forEach(order => {
+      monthlySales +=
+        (priceMap[order.product_id] || 0) *
+        Number(order.quantity || 1);
+    });
   }
 
-  let sales = 0;
+  const salesBox = document.getElementById("resellerMonthlySales");
 
-  (orders || []).forEach(order => {
-    const product = products.find(p => p.id === order.product_id);
+  if (salesBox) {
+    salesBox.textContent =
+      "এই মাসের বিক্রি: ৳" + monthlySales.toFixed(2);
+  }
 
-    if (product) {
-      sales += Number(product.price) * Number(order.quantity);
-    }
-  });
 
-  document.getElementById("resellerSales").textContent =
-    "এই মাসের বিক্রি: ৳" + sales;
+  /* MONTHLY SALES TARGET */
 
-  const { data: targetData, error: targetError } =
-    await db.rpc("get_reseller_target");
+  const { data: targetData, error: targetError } = await db
+    .rpc("get_reseller_target");
 
   if (targetError) {
-    document.getElementById("resellerTarget").textContent =
-      "লক্ষ্য লোড সমস্যা: " + targetError.message;
-  } else {
-    const target = Number(targetData || 100000);
-
-    const progress = target > 0
-      ? Math.min(100, sales / target * 100).toFixed(1)
-      : "0.0";
-
-    document.getElementById("resellerTarget").textContent =
-      "মাসিক লক্ষ্য: ৳" + target +
-      " | অগ্রগতি: " + progress + "%";
+    console.error("Target error:", targetError);
   }
 
-  const { data: bonusData, error: bonusError } =
-    await db.rpc("get_reseller_bonus_status");
+  let target = Number(targetData) || 100000;
+
+  if (typeof targetData === "object" && targetData !== null) {
+    target = Number(
+      targetData.target_sales ||
+      targetData.target ||
+      100000
+    );
+  }
+
+  const progress = target > 0
+    ? Math.min((monthlySales / target) * 100, 100)
+    : 0;
+
+  const targetBox = document.getElementById("resellerTarget");
+
+  if (targetBox) {
+    targetBox.textContent =
+      "মাসিক লক্ষ্য: ৳" + target.toFixed(2) +
+      " | অগ্রগতি: " + progress.toFixed(1) + "%";
+  }
+
+
+  /* MONTHLY BONUS STATUS */
+
+  const { data: bonusData, error: bonusError } = await db
+    .rpc("get_reseller_bonus_status");
 
   if (bonusError) {
-    document.getElementById("resellerBonusStatus").textContent =
-      "বোনাসের হিসাব সমস্যা: " + bonusError.message;
-  } else {
-    document.getElementById("resellerBonusStatus").textContent =
-      bonusData
-        ? "অভিনন্দন! এই মাসের বোনাস অর্জিত হয়েছে।"
-        : "এই মাসের বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
+    console.error("Bonus status error:", bonusError);
+  }
+
+  const bonusBox = document.getElementById("resellerBonusStatus");
+
+  if (bonusBox) {
+    let earned = false;
+
+    if (typeof bonusData === "boolean") {
+      earned = bonusData;
+    } else if (bonusData && typeof bonusData === "object") {
+      earned =
+        bonusData.bonus_eligible === true ||
+        bonusData.eligible === true ||
+        bonusData.earned === true;
+    }
+
+    bonusBox.textContent = earned
+      ? "অভিনন্দন! তুমি এই মাসের বোনাস অর্জন করেছ।"
+      : "এই মাসের বোনাস এখনো অর্জিত হয়নি।";
   }
 }
 
-
-/* COPY RESELLER REFERRAL LINK */
+/* =====================================
+   PART 10: RESELLER REFERRAL LINK
+===================================== */
 
 async function copyReferralLink() {
-  if (!currentResellerUser) return;
+  if (!currentResellerUser) {
+    alert("আগে রিসেলার লগইন করো।");
+    return;
+  }
 
-  const msg = document.getElementById("referralLinkMsg");
-
-  const { data, error } = await db
+  const { data: profile, error } = await db
     .from("profiles")
     .select("referral_code")
     .eq("id", currentResellerUser.id)
-    .maybeSingle();
+    .single();
 
-  if (error || !data?.referral_code) {
-    msg.textContent = "রেফারেল কোড পাওয়া যায়নি।";
+  if (error) {
+    alert("রেফারেল কোড পাওয়া যায়নি।");
+    console.error(error);
     return;
   }
 
-  const link = window.location.origin +
+  if (!profile || !profile.referral_code) {
+    alert("তোমার রেফারেল কোড তৈরি করা হয়নি।");
+    return;
+  }
+
+  const referralLink =
+    window.location.origin +
     window.location.pathname +
-    "?ref=" + encodeURIComponent(data.referral_code);
+    "?ref=" +
+    encodeURIComponent(profile.referral_code);
 
   try {
-    await navigator.clipboard.writeText(link);
-    msg.textContent = "রেফারেল লিংক কপি হয়েছে।";
-  } catch {
-    msg.textContent =
-      "লিংক কপি হয়নি। কোড: " + data.referral_code;
+    await navigator.clipboard.writeText(referralLink);
+    alert("তোমার রেফারেল লিংক কপি হয়েছে!");
+  } catch (err) {
+    const temp = document.createElement("textarea");
+    temp.value = referralLink;
+    document.body.appendChild(temp);
+    temp.select();
+
+    const copied = document.execCommand("copy");
+    temp.remove();
+
+    if (copied) {
+      alert("তোমার রেফারেল লিংক কপি হয়েছে!");
+    } else {
+      alert("লিংক কপি করা যায়নি: " + referralLink);
+    }
   }
 }
-
-
 /* =====================================
-   RESELLER WITHDRAWAL SYSTEM
+   PART 11: RESELLER WITHDRAWAL
 ===================================== */
 
-
-/* REQUEST WITHDRAWAL */
-
 async function requestWithdrawal() {
-  const msg = document.getElementById("withdrawMsg");
-
   if (!currentResellerUser) {
-    msg.textContent = "আগে রিসেলার লগইন করো।";
+    alert("আগে রিসেলার লগইন করো।");
     return;
   }
 
   const amount = Number(
-    document.getElementById("withdrawAmount").value
+    document.getElementById("withdrawAmount")?.value
   );
 
   const method =
-    document.getElementById("withdrawMethod").value;
+    document.getElementById("withdrawMethod")?.value;
 
-  const number =
-    document.getElementById("withdrawNumber").value.trim();
+  const phone =
+    document.getElementById("withdrawPhone")?.value.trim();
 
-  if (!Number.isFinite(amount) || amount <= 0) {
-    msg.textContent = "সঠিক টাকার পরিমাণ লিখো।";
+  if (!amount || amount <= 0) {
+    alert("সঠিক টাকার পরিমাণ লিখো।");
     return;
   }
 
-  if (!method) {
-    msg.textContent = "bKash অথবা Nagad নির্বাচন করো।";
+  if (!method || !["bKash", "Nagad"].includes(method)) {
+    alert("বিকাশ অথবা নগদ নির্বাচন করো।");
     return;
   }
 
-  if (!number) {
-    msg.textContent = "মোবাইল নম্বর লিখো।";
+  if (!/^01[3-9]\d{8}$/.test(phone)) {
+    alert("সঠিক ১১ সংখ্যার মোবাইল নম্বর লিখো।");
     return;
   }
-
-  msg.textContent = "আবেদন জমা হচ্ছে...";
 
   const { data, error } = await db.rpc("request_withdrawal", {
     p_amount: amount,
     p_payment_method: method,
-    p_payment_number: number
+    p_mobile_number: phone
   });
 
   if (error) {
-    msg.textContent = "আবেদন সমস্যা: " + error.message;
+    alert("আবেদন করা যায়নি: " + error.message);
+    console.error(error);
     return;
   }
 
-  msg.textContent =
-    "আবেদন সফল হয়েছে। আবেদন নম্বর: " + data;
+  alert("টাকা উত্তোলনের আবেদন সফলভাবে জমা হয়েছে।");
 
   document.getElementById("withdrawAmount").value = "";
+  document.getElementById("withdrawPhone").value = "";
 
-  await loadResellerSummary();
   await loadResellerWithdrawals();
 }
 
 
-/* RESELLER WITHDRAWAL HISTORY */
+/* LOAD RESELLER WITHDRAWAL HISTORY */
 
 async function loadResellerWithdrawals() {
-  const box = document.getElementById("resellerWithdrawalList");
+  const box = document.getElementById("resellerWithdrawals");
 
   if (!box || !currentResellerUser) return;
 
@@ -973,70 +1244,80 @@ async function loadResellerWithdrawals() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "আবেদন লোড সমস্যা: " + error.message;
+    box.textContent = "আবেদনের তালিকা লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
   box.innerHTML = "";
 
   if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো টাকা তোলার আবেদন করা হয়নি।";
+    box.textContent = "এখনো কোনো টাকা উত্তোলনের আবেদন নেই।";
     return;
   }
 
-  data.forEach(r => {
-    const item = document.createElement("div");
-    item.className = "card";
+  data.forEach(item => {
+    const card = document.createElement("div");
 
-    const status = {
-      pending: "অপেক্ষমাণ",
-      approved: "অনুমোদিত",
-      paid: "পরিশোধিত",
-      rejected: "বাতিল"
-    };
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "10px";
 
-    item.textContent =
-      "আবেদন ID: " + r.id +
-      "\nটাকার পরিমাণ: ৳" + Number(r.amount).toFixed(2) +
-      "\nপেমেন্ট মাধ্যম: " + r.payment_method.toUpperCase() +
-      "\nমোবাইল নম্বর: " + r.payment_number +
-      "\nআবেদনের তারিখ: " +
-      new Date(r.created_at).toLocaleString("bn-BD") +
-      "\nঅবস্থা: " + (status[r.status] || r.status);
+    const amount = document.createElement("p");
+    amount.textContent = "টাকার পরিমাণ: ৳" + item.amount;
 
-    box.appendChild(item);
+    const method = document.createElement("p");
+    method.textContent = "পেমেন্ট মাধ্যম: " + item.payment_method;
+
+    const phone = document.createElement("p");
+    phone.textContent = "মোবাইল নম্বর: " + item.mobile_number;
+
+    const status = document.createElement("p");
+    status.textContent = "অবস্থা: " + item.status;
+
+    card.appendChild(amount);
+    card.appendChild(method);
+    card.appendChild(phone);
+    card.appendChild(status);
+
+    box.appendChild(card);
   });
 }
+/* =====================================
+   PART 12: ADMIN WITHDRAWAL MANAGEMENT
+===================================== */
 
 
-/* ADMIN WITHDRAWAL LIST */
+/* LOAD ALL WITHDRAWAL REQUESTS */
 
 async function loadAdminWithdrawals() {
-  const box = document.getElementById("adminWithdrawalList");
+  const box = document.getElementById("adminWithdrawals");
 
   if (!box) return;
 
-  box.textContent = "Withdrawal আবেদন লোড হচ্ছে...";
+  box.textContent = "আবেদন লোড হচ্ছে...";
 
-  const { data: requests, error } = await db
+  const { data, error } = await db
     .from("withdrawal_requests")
     .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "আবেদন লোড সমস্যা: " + error.message;
+    box.textContent = "আবেদন লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
   box.innerHTML = "";
 
-  if (!requests || requests.length === 0) {
-    box.textContent = "এখনো কোনো Withdrawal আবেদন আসেনি।";
+  if (!data || data.length === 0) {
+    box.textContent = "কোনো টাকা উত্তোলনের আবেদন নেই।";
     return;
   }
 
   const resellerIds = [
-    ...new Set(requests.map(r => r.reseller_id))
+    ...new Set(data.map(item => item.reseller_id).filter(Boolean))
   ];
 
   const { data: profiles, error: profileError } = await db
@@ -1045,550 +1326,560 @@ async function loadAdminWithdrawals() {
     .in("id", resellerIds);
 
   if (profileError) {
-    box.textContent = "রিসেলার তথ্য সমস্যা: " + profileError.message;
-    return;
+    console.error(profileError);
   }
 
-  requests.forEach(r => {
-    const profile = (profiles || []).find(
-      p => p.id === r.reseller_id
-    );
+  const nameMap = {};
 
-    const item = document.createElement("div");
-    item.className = "card";
+  (profiles || []).forEach(profile => {
+    nameMap[profile.id] = profile.full_name || "রিসেলার";
+  });
 
-    const status = {
-      pending: "অপেক্ষমাণ",
-      approved: "অনুমোদিত",
-      paid: "পরিশোধিত",
-      rejected: "বাতিল"
-    };
+  data.forEach(item => {
+    const card = document.createElement("div");
 
-    const info = document.createElement("p");
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "12px";
 
-    info.textContent =
-      "আবেদন ID: " + r.id +
-      "\nরিসেলার: " + (profile?.full_name || "নাম পাওয়া যায়নি") +
-      "\nটাকার পরিমাণ: ৳" + Number(r.amount).toFixed(2) +
-      "\nপেমেন্ট মাধ্যম: " + r.payment_method.toUpperCase() +
-      "\nমোবাইল নম্বর: " + r.payment_number +
-      "\nকমিশন থেকে: ৳" + Number(r.commission_amount || 0) +
-      "\nরেফারেল থেকে: ৳" + Number(r.referral_amount || 0) +
-      "\nবোনাস থেকে: ৳" + Number(r.bonus_amount || 0) +
-      "\nআবেদনের তারিখ: " +
-      new Date(r.created_at).toLocaleString("bn-BD") +
-      "\nঅবস্থা: " + (status[r.status] || r.status);
+    const reseller = document.createElement("p");
+    reseller.textContent =
+      "রিসেলার: " + (nameMap[item.reseller_id] || "অজানা");
 
-    item.appendChild(info);
+    const amount = document.createElement("p");
+    amount.textContent = "টাকার পরিমাণ: ৳" + item.amount;
 
-    if (r.status === "pending") {
+    const method = document.createElement("p");
+    method.textContent = "পেমেন্ট মাধ্যম: " + item.payment_method;
+
+    const phone = document.createElement("p");
+    phone.textContent = "মোবাইল নম্বর: " + item.mobile_number;
+
+    const status = document.createElement("p");
+    status.textContent = "অবস্থা: " + item.status;
+
+    const date = document.createElement("p");
+    date.textContent = item.created_at
+      ? "আবেদনের তারিখ: " + new Date(item.created_at).toLocaleString("bn-BD")
+      : "";
+
+    card.appendChild(reseller);
+    card.appendChild(amount);
+    card.appendChild(method);
+    card.appendChild(phone);
+    card.appendChild(status);
+    card.appendChild(date);
+
+    if (item.status === "pending") {
       const paidBtn = document.createElement("button");
+      paidBtn.textContent = "টাকা পাঠানো হয়েছে — Paid";
+      paidBtn.style.marginRight = "8px";
 
-      paidBtn.textContent = "টাকা পরিশোধিত";
-      paidBtn.onclick = () => processWithdrawal(r.id, "paid");
+      paidBtn.onclick = () => {
+        const confirmed = confirm(
+          "তুমি কি সত্যিই এই রিসেলারকে ৳" +
+          item.amount +
+          " পাঠিয়েছ?"
+        );
 
-      item.appendChild(paidBtn);
+        if (confirmed) {
+          processWithdrawal(item.id, "paid");
+        }
+      };
 
       const rejectBtn = document.createElement("button");
+      rejectBtn.textContent = "Reject";
 
-      rejectBtn.textContent = "আবেদন বাতিল";
-      rejectBtn.className = "danger";
-      rejectBtn.onclick = () => processWithdrawal(r.id, "rejected");
+      rejectBtn.onclick = () => {
+        const confirmed = confirm(
+          "তুমি কি এই আবেদনটি Reject করতে চাও?"
+        );
 
-      item.appendChild(rejectBtn);
+        if (confirmed) {
+          processWithdrawal(item.id, "rejected");
+        }
+      };
+
+      card.appendChild(paidBtn);
+      card.appendChild(rejectBtn);
     }
 
-    box.appendChild(item);
+    box.appendChild(card);
   });
 }
 
 
-/* ADMIN PROCESS WITHDRAWAL */
+/* PROCESS WITHDRAWAL */
 
-async function processWithdrawal(id, action) {
-  const confirmText = action === "paid"
-    ? "এই আবেদনটি পরিশোধিত হিসেবে চিহ্নিত করবে?"
-    : "এই আবেদনটি বাতিল করবে? বাতিল হলে টাকা রিসেলারের ব্যালেন্সে ফেরত যাবে।";
-
-  if (!confirm(confirmText)) return;
+async function processWithdrawal(id, status) {
+  if (!["paid", "rejected"].includes(status)) {
+    alert("ভুল আবেদন অবস্থা।");
+    return;
+  }
 
   const { error } = await db.rpc("admin_process_withdrawal", {
     p_request_id: id,
-    p_action: action
+    p_status: status
   });
 
   if (error) {
-    alert("আবেদন আপডেট সমস্যা: " + error.message);
+    alert("আবেদন আপডেট করা যায়নি: " + error.message);
+    console.error(error);
     return;
   }
 
   alert(
-    action === "paid"
-      ? "আবেদন পরিশোধিত হয়েছে।"
-      : "আবেদন বাতিল হয়েছে এবং টাকা ফেরত দেওয়া হয়েছে।"
+    status === "paid"
+      ? "আবেদন Paid হয়েছে।"
+      : "আবেদন Reject হয়েছে।"
   );
 
   await loadAdminWithdrawals();
-}
+    }
+/* =====================================
+   PART 13: ADMIN BONUS SETTINGS
+===================================== */
 
 
-/* ADMIN BONUS SETTINGS */
+/* LOAD BONUS SETTINGS */
 
 async function loadBonusSettings() {
+  const targetInput = document.getElementById("bonusTarget");
+  const amountInput = document.getElementById("bonusAmount");
+
+  if (!targetInput || !amountInput) return;
+
   const { data, error } = await db
     .from("bonus_settings")
-    .select("target_sales,bonus_amount")
-    .eq("id", 1)
+    .select("*")
+    .limit(1)
     .maybeSingle();
 
   if (error) {
-    const msg = document.getElementById("bonusMsg");
-
-    if (msg) msg.textContent =
-      "লোড সমস্যা: " + error.message;
-
+    console.error("Bonus settings error:", error);
     return;
   }
 
   if (data) {
-    document.getElementById("bonusTarget").value =
-      data.target_sales;
-
-    document.getElementById("bonusAmount").value =
-      data.bonus_amount;
+    targetInput.value = data.target_sales || 100000;
+    amountInput.value = data.bonus_amount || 0;
   }
 }
 
+
+/* SAVE BONUS SETTINGS */
 
 async function saveBonusSettings() {
-  const target =
-    Number(document.getElementById("bonusTarget").value);
+  const target = Number(
+    document.getElementById("bonusTarget")?.value
+  );
 
-  const bonus =
-    Number(document.getElementById("bonusAmount").value);
+  const amount = Number(
+    document.getElementById("bonusAmount")?.value
+  );
 
-  const msg = document.getElementById("bonusMsg");
-
-  if (
-    !Number.isFinite(target) ||
-    target <= 0 ||
-    !Number.isFinite(bonus) ||
-    bonus < 0
-  ) {
-    msg.textContent = "সঠিক টাকার পরিমাণ লিখুন।";
+  if (!target || target <= 0 || !amount || amount <= 0) {
+    alert("সঠিক বিক্রির লক্ষ্য ও বোনাসের পরিমাণ লিখো।");
     return;
   }
 
-  msg.textContent = "সংরক্ষণ হচ্ছে...";
-
-  const { error } = await db
+  const { data: existing, error: readError } = await db
     .from("bonus_settings")
-    .update({
-      target_sales: target,
-      bonus_amount: bonus,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", 1);
+    .select("id")
+    .limit(1)
+    .maybeSingle();
 
-  if (error) {
-    msg.textContent = "সংরক্ষণ সমস্যা: " + error.message;
+  if (readError) {
+    alert("বোনাস সেটিংস পড়া যায়নি।");
+    console.error(readError);
     return;
   }
 
-  msg.textContent = "বোনাস সেটিংস সফলভাবে সংরক্ষিত হয়েছে।";
+  let result;
+
+  if (existing) {
+    result = await db
+      .from("bonus_settings")
+      .update({
+        target_sales: target,
+        bonus_amount: amount
+      })
+      .eq("id", existing.id);
+  } else {
+    result = await db
+      .from("bonus_settings")
+      .insert([{
+        target_sales: target,
+        bonus_amount: amount
+      }]);
+  }
+
+  if (result.error) {
+    alert("সেটিংস সংরক্ষণ করা যায়নি: " + result.error.message);
+    console.error(result.error);
+    return;
+  }
+
+  alert("বোনাস সেটিংস সংরক্ষণ হয়েছে।");
 }
 
 
-/* ADMIN RESELLER BONUS REPORT */
+/* LOAD ADMIN BONUS REPORT */
 
 async function loadAdminBonusReport() {
   const box = document.getElementById("adminBonusReport");
 
   if (!box) return;
 
-  box.textContent = "বোনাসের হিসাব লোড হচ্ছে...";
+  box.textContent = "বোনাস রিপোর্ট লোড হচ্ছে...";
 
-  const { data: bonuses, error } = await db
+  const { data, error } = await db
     .from("reseller_monthly_bonus")
-    .select("reseller_id,month_start,bonus_amount")
-    .order("month_start", { ascending: false });
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "রিপোর্ট সমস্যা: " + error.message;
-    return;
-  }
-
-  if (!bonuses || bonuses.length === 0) {
-    box.textContent = "এখনো কোনো রিসেলার বোনাস অর্জন করেনি।";
-    return;
-  }
-
-  const ids = [...new Set(bonuses.map(b => b.reseller_id))];
-
-  const { data: profiles, error: profileError } = await db
-    .from("profiles")
-    .select("id,full_name")
-    .in("id", ids);
-
-  if (profileError) {
-    box.textContent = "রিসেলার তথ্য সমস্যা: " + profileError.message;
+    box.textContent = "বোনাস রিপোর্ট লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
   box.innerHTML = "";
 
-  bonuses.forEach(b => {
-    const profile = profiles.find(p => p.id === b.reseller_id);
+  if (!data || data.length === 0) {
+    box.textContent = "এখনো কোনো মাসিক বোনাসের তথ্য নেই।";
+    return;
+  }
 
-    const item = document.createElement("div");
-    item.className = "card";
-
-    item.textContent =
-      "রিসেলার: " + (profile?.full_name || "নাম পাওয়া যায়নি") +
-      " | মাস: " + b.month_start +
-      " | বোনাস: ৳" + Number(b.bonus_amount);
-
-    box.appendChild(item);
-  });
-}
-
-
-/* ADMIN ALL RESELLER REPORT */
-
-async function loadAdminResellerSummary() {
-  const box = document.getElementById("adminBonusReport");
-
-  if (!box) return;
-
-  box.textContent = "সব রিসেলারের হিসাব লোড হচ্ছে...";
+  const resellerIds = [
+    ...new Set(data.map(item => item.reseller_id).filter(Boolean))
+  ];
 
   const { data: profiles, error: profileError } = await db
     .from("profiles")
     .select("id,full_name")
-    .eq("role", "reseller");
+    .in("id", resellerIds);
 
   if (profileError) {
-    box.textContent = "রিসেলার তথ্য সমস্যা: " + profileError.message;
-    return;
+    console.error(profileError);
   }
 
-  if (!profiles || profiles.length === 0) {
-    box.textContent = "কোনো রিসেলার পাওয়া যায়নি।";
-    return;
-  }
+  const nameMap = {};
 
-  const now = new Date();
-
-  const start = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  );
-
-  const startDate =
-    now.getFullYear() + "-" +
-    String(now.getMonth() + 1).padStart(2, "0") +
-    "-01";
-
-  const { data: targetData, error: targetError } =
-    await db.rpc("get_reseller_target");
-
-  if (targetError) {
-    box.textContent = "লক্ষ্য লোড সমস্যা: " + targetError.message;
-    return;
-  }
-
-  const target = Number(targetData || 100000);
-
-  const { data: orders, error: orderError } = await db
-    .from("orders")
-    .select("reseller_id,product_id,quantity,status,commission_amount,created_at");
-
-  if (orderError) {
-    box.textContent = "অর্ডারের হিসাব সমস্যা: " + orderError.message;
-    return;
-  }
-
-  const { data: bonuses, error: bonusError } = await db
-    .from("reseller_monthly_bonus")
-    .select("reseller_id,month_start,bonus_amount")
-    .eq("month_start", startDate);
-
-  if (bonusError) {
-    box.textContent = "বোনাসের হিসাব সমস্যা: " + bonusError.message;
-    return;
-  }
-
-  const ids = [...new Set((orders || []).map(o => o.product_id))];
-
-  let products = [];
-
-  if (ids.length) {
-    const { data, error } = await db
-      .from("products")
-      .select("id,price")
-      .in("id", ids);
-
-    if (error) {
-      box.textContent = "পণ্যের হিসাব সমস্যা: " + error.message;
-      return;
-    }
-
-    products = data || [];
-  }
-
-  box.innerHTML = "";
-
-  profiles.forEach(profile => {
-    const resellerOrders = (orders || []).filter(
-      o => o.reseller_id === profile.id
-    );
-
-    const totalOrders = resellerOrders.length;
-
-    const completedOrders = resellerOrders.filter(
-      o => o.status === "completed"
-    );
-
-    const completedCount = completedOrders.length;
-
-    let monthlySales = 0;
-    let totalCommission = 0;
-
-    completedOrders.forEach(order => {
-      totalCommission += Number(order.commission_amount || 0);
-
-      const orderDate = new Date(order.created_at);
-
-      if (orderDate >= start) {
-        const product = products.find(
-          p => p.id === order.product_id
-        );
-
-        if (product) {
-          monthlySales +=
-            Number(product.price) * Number(order.quantity);
-        }
-      }
-    });
-
-    const progress = target > 0
-      ? Math.min(100, monthlySales / target * 100).toFixed(1)
-      : "0.0";
-
-    const bonus = (bonuses || []).find(
-      b => b.reseller_id === profile.id
-    );
-
-    const item = document.createElement("div");
-    item.className = "card";
-
-    item.textContent =
-      "রিসেলার: " + (profile.full_name || "নাম পাওয়া যায়নি") +
-      " | মোট অর্ডার: " + totalOrders +
-      " | সম্পন্ন অর্ডার: " + completedCount +
-      " | এই মাসের বিক্রি: ৳" + monthlySales +
-      " | মোট কমিশন আয়: ৳" + totalCommission +
-      " | লক্ষ্যের অগ্রগতি: " + progress + "%" +
-      " | বোনাস: " +
-      (bonus
-        ? "অর্জিত ৳" + Number(bonus.bonus_amount)
-        : "অর্জিত হয়নি");
-
-    box.appendChild(item);
+  (profiles || []).forEach(profile => {
+    nameMap[profile.id] = profile.full_name || "রিসেলার";
   });
-}
 
+  data.forEach(item => {
+    const card = document.createElement("div");
 
-/* ADMIN REFERRAL COMMISSION REPORT */
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "10px";
+
+    const name = document.createElement("p");
+    name.textContent =
+      "রিসেলার: " + (nameMap[item.reseller_id] || "অজানা");
+
+    const amount = document.createElement("p");
+    amount.textContent =
+      "বোনাস: ৳" + (item.bonus_amount || 0);
+
+    const status = document.createElement("p");
+    status.textContent =
+      "অবস্থা: " + (item.status || "তথ্য নেই");
+
+    const date = document.createElement("p");
+    date.textContent = item.created_at
+      ? "তারিখ: " + new Date(item.created_at).toLocaleString("bn-BD")
+      : "";
+
+    card.appendChild(name);
+    card.appendChild(amount);
+    card.appendChild(status);
+    card.appendChild(date);
+
+    box.appendChild(card);
+  });
+  }
+
+/* =====================================
+   PART 14: ADMIN REFERRAL REPORT
+===================================== */
 
 async function loadAdminReferralReport() {
   const box = document.getElementById("adminReferralReport");
 
   if (!box) return;
 
-  box.textContent = "রেফারেল হিসাব লোড হচ্ছে...";
+  box.textContent = "রেফারেল রিপোর্ট লোড হচ্ছে...";
 
-  const { data: sessionData } = await db.auth.getSession();
-  const user = sessionData?.session?.user;
+  /* VERIFY ADMIN */
 
-  if (!user) {
-    box.textContent = "আগে Admin Login করো।";
+  const {
+    data: { user },
+    error: authError
+  } = await db.auth.getUser();
+
+  if (authError || !user) {
+    box.textContent = "Admin লগইন করা নেই।";
     return;
   }
 
-  const { data: admin, error: adminError } = await db
+  const { data: adminProfile, error: adminError } = await db
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .maybeSingle();
+    .single();
 
-  if (adminError || admin?.role !== "admin") {
-    box.textContent = "শুধু Admin এই রিপোর্ট দেখতে পারবে।";
+  if (adminError || adminProfile?.role !== "admin") {
+    box.textContent = "শুধু Admin এই রিপোর্ট দেখতে পারবেন।";
     return;
   }
 
-  const { data: rewards, error } = await db
+  /* LOAD REFERRAL REWARDS */
+
+  const { data, error } = await db
     .from("referral_rewards")
-    .select("order_id,referrer_id,referred_reseller_id,reward_amount,created_at")
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "রিপোর্ট সমস্যা: " + error.message;
+    box.textContent = "রেফারেল রিপোর্ট লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
-  if (!rewards || rewards.length === 0) {
-    box.textContent = "এখনো কোনো Referral কমিশন পাওয়া যায়নি।";
+  box.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    box.textContent = "এখনো কোনো রেফারেল পুরস্কারের তথ্য নেই।";
     return;
   }
 
-  const ids = [...new Set(
-    rewards.flatMap(r => [
-      r.referrer_id,
-      r.referred_reseller_id
-    ])
-  )];
+  /* GET RESELLER NAMES */
+
+  const resellerIds = [
+    ...new Set(
+      data.flatMap(item => [
+        item.referrer_id,
+        item.referred_reseller_id
+      ]).filter(Boolean)
+    )
+  ];
 
   const { data: profiles, error: profileError } = await db
     .from("profiles")
     .select("id,full_name")
-    .in("id", ids);
+    .in("id", resellerIds);
 
   if (profileError) {
-    box.textContent = "রিসেলার তথ্য সমস্যা: " + profileError.message;
-    return;
+    console.error(profileError);
   }
 
-  const total = rewards.reduce(
-    (sum, r) => sum + Number(r.reward_amount || 0),
-    0
-  );
+  const nameMap = {};
 
-  box.innerHTML = "";
-
-  const summary = document.createElement("div");
-  summary.className = "card";
-
-  summary.textContent =
-    "মোট Referral কমিশন: ৳" + total +
-    " | মোট কমিশন: " + rewards.length + " টি";
-
-  box.appendChild(summary);
-
-  rewards.forEach(r => {
-    const referrer = profiles.find(p => p.id === r.referrer_id);
-    const referred = profiles.find(p => p.id === r.referred_reseller_id);
-
-    const item = document.createElement("div");
-    item.className = "card";
-
-    item.textContent =
-      "Referral দিয়েছেন: " + (referrer?.full_name || "নাম পাওয়া যায়নি") +
-      "\nReferral রিসেলার: " + (referred?.full_name || "নাম পাওয়া যায়নি") +
-      "\nঅর্ডার ID: " + r.order_id +
-      "\nকমিশন: ৳" + Number(r.reward_amount) +
-      "\nতারিখ: " + new Date(r.created_at).toLocaleString("bn-BD");
-
-    box.appendChild(item);
+  (profiles || []).forEach(profile => {
+    nameMap[profile.id] = profile.full_name || "রিসেলার";
   });
+
+  /* DISPLAY REPORT */
+
+  let totalReward = 0;
+
+  data.forEach(item => {
+    const card = document.createElement("div");
+
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "10px";
+
+    const referrer = document.createElement("p");
+    referrer.textContent =
+      "যিনি রেফার করেছেন: " +
+      (nameMap[item.referrer_id] || "অজানা");
+
+    const referred = document.createElement("p");
+    referred.textContent =
+      "যিনি রেজিস্ট্রেশন করেছেন: " +
+      (nameMap[item.referred_reseller_id] || "অজানা");
+
+    const amount = document.createElement("p");
+    amount.textContent =
+      "রেফারেল পুরস্কার: ৳" + (item.amount || 0);
+
+    const order = document.createElement("p");
+    order.textContent =
+      "অর্ডার ID: " + (item.order_id || "তথ্য নেই");
+
+    const date = document.createElement("p");
+    date.textContent = item.created_at
+      ? "তারিখ: " + new Date(item.created_at).toLocaleString("bn-BD")
+      : "";
+
+    totalReward += Number(item.amount || 0);
+
+    card.appendChild(referrer);
+    card.appendChild(referred);
+    card.appendChild(amount);
+    card.appendChild(order);
+    card.appendChild(date);
+
+    box.appendChild(card);
+  });
+
+  const total = document.createElement("h3");
+  total.textContent =
+    "মোট রেফারেল পুরস্কার: ৳" + totalReward.toFixed(2);
+
+  box.prepend(total);
 }
-
-
-/* ADMIN LOAD PRODUCTS */
+/* =====================================
+   PART 15: ADMIN PRODUCT LIST
+===================================== */
 
 async function loadProducts() {
-  const list = document.getElementById("productList");
+  const box = document.getElementById("adminProducts");
 
-  if (!list) return;
+  if (!box) return;
 
-  list.textContent = "পণ্য লোড হচ্ছে...";
+  box.textContent = "পণ্য লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("products")
-    .select("*")
+    .select("id,name,description,price,image_url,image_urls")
     .order("id", { ascending: false });
 
   if (error) {
-    list.textContent = "সমস্যা: " + error.message;
+    box.textContent = "পণ্য লোড করা যায়নি।";
+    console.error(error);
     return;
   }
 
-  list.innerHTML = "";
+  box.innerHTML = "";
 
   if (!data || data.length === 0) {
-    list.textContent = "কোনো পণ্য নেই।";
+    box.textContent = "এখনো কোনো পণ্য যোগ করা হয়নি।";
     return;
   }
 
-  data.forEach(p => {
+  data.forEach(product => {
     const card = document.createElement("div");
-    card.className = "card";
 
-    if (p.image_url) {
-      const img = document.createElement("img");
-      img.src = p.image_url;
-      img.alt = p.name;
-      card.appendChild(img);
-    }
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "10px";
+    card.style.padding = "12px";
+    card.style.marginBottom = "12px";
 
-    const title = document.createElement("h3");
-    title.textContent = p.name;
-    card.appendChild(title);
+    /* PRODUCT IMAGE GALLERY */
 
-    const desc = document.createElement("p");
-    desc.textContent = p.description || "";
-    card.appendChild(desc);
+    appendProductGallery(card, product);
+
+    /* PRODUCT NAME */
+
+    const name = document.createElement("h3");
+    name.textContent = product.name;
+
+    /* PRODUCT DESCRIPTION */
+
+    const description = document.createElement("p");
+    description.textContent = product.description || "";
+
+    /* PRODUCT PRICE */
 
     const price = document.createElement("p");
-    price.className = "price";
-    price.textContent = "দাম: ৳" + p.price;
+    price.textContent =
+      "পণ্যের দাম: ৳" + product.price;
+
+    /* DELETE BUTTON */
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "পণ্য ডিলিট করুন";
+
+    deleteBtn.style.background = "#dc3545";
+    deleteBtn.style.color = "white";
+    deleteBtn.style.border = "none";
+    deleteBtn.style.padding = "9px 14px";
+    deleteBtn.style.borderRadius = "6px";
+
+    deleteBtn.onclick = () => {
+      deleteProduct(product.id);
+    };
+
+    card.appendChild(name);
+    card.appendChild(description);
     card.appendChild(price);
+    card.appendChild(deleteBtn);
 
-    const del = document.createElement("button");
-    del.className = "danger";
-    del.textContent = "পণ্য মুছুন";
-    del.onclick = () => deleteProduct(p.id);
-
-    card.appendChild(del);
-    list.appendChild(card);
+    box.appendChild(card);
   });
+}
+/* =====================================
+   PART 16: SESSION & APP STARTUP
+===================================== */
+
+
+/* GET REFERRAL CODE FROM URL */
+
+const urlParams = new URLSearchParams(window.location.search);
+
+const referralCodeFromURL = urlParams.get("ref");
+
+if (referralCodeFromURL) {
+  const referralInput = document.getElementById("referralCode");
+
+  if (referralInput) {
+    referralInput.value = referralCodeFromURL;
+  }
+
+  localStorage.setItem("pendingReferralCode", referralCodeFromURL);
 }
 
 
-/* CHECK EXISTING LOGIN SESSION */
+/* CHECK LOGIN SESSION */
 
 async function checkSession() {
-  const { data, error } = await db.auth.getSession();
+  const {
+    data: { session },
+    error
+  } = await db.auth.getSession();
 
   if (error) {
-    console.log(error.message);
+    console.error("Session error:", error);
     return;
   }
 
-  if (data.session) {
-    await verifyAdmin(data.session.user);
+  if (!session) {
+    show("loginPage");
+    return;
   }
+
+  await verifyAdmin(
+    session.user,
+    "loginMsg"
+  );
 }
 
 
-/* AUTO FILL REFERRAL CODE FROM URL */
+/* AUTH STATE CHANGE */
 
-function loadReferralCodeFromURL() {
-  const code = new URLSearchParams(window.location.search).get("ref");
-
-  if (code) {
-    const input = document.getElementById("referralCode");
-
-    if (input) {
-      input.value = code.trim().toUpperCase();
-    }
+db.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") {
+    currentResellerUser = null;
+    show("loginPage");
   }
-}
+});
 
 
-/* START APP */
+/* APP START */
 
-loadReferralCodeFromURL();
-loadStoreProducts();
-checkSession();
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadStoreProducts();
+  await checkSession();
+});
+
+
+
