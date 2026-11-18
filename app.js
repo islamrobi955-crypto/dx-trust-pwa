@@ -739,25 +739,7 @@ async function loadResellerSummary() {
     .select("commission_balance,referral_balance,referral_code")
     .eq("id", currentResellerUser.id)
     .maybeSingle();
-
-  if (profileError) {
-    document.getElementById("resellerEarnings").textContent =
-      "আয়ের হিসাব সমস্যা: " + profileError.message;
-    return;
-  }
-
-  document.getElementById("resellerEarnings").textContent =
-    "৳" + Number(profile?.commission_balance || 0);
-document.getElementById("resellerEarnings").textContent =
-  "৳" + Number(profile?.commission_balance || 0);
-
-document.getElementById("referralEarnings").textContent =
-  "৳" + Number(profile?.referral_balance || 0);
-
-document.getElementById("myReferralCode").textContent =
-  profile?.referral_code || "কোড পাওয়া যায়নি";
-  const now = new Date();
-
+   
   const start = new Date(
     now.getFullYear(),
     now.getMonth(),
