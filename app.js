@@ -1206,8 +1206,23 @@ async function checkSession() {
   }
 }
 
+/* AUTO FILL REFERRAL CODE FROM URL */
+
+function loadReferralCodeFromURL() {
+  const code = new URLSearchParams(window.location.search).get("ref");
+
+  if (code) {
+    const input = document.getElementById("referralCode");
+
+    if (input) {
+      input.value = code.trim().toUpperCase();
+    }
+  }
+}
+
 
 /* START APP */
 
+loadReferralCodeFromURL();
 loadStoreProducts();
 checkSession();
