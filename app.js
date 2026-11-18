@@ -2,17 +2,17 @@
    DX TRUST MEDIA LIFESTYLE COX
    MAIN JAVASCRIPT
 ===================================== */
-
 /* SUPABASE CONNECTION */
 
 const SUPABASE_URL = "https://oloasnzcnqeakfpwtttc.supabase.co";
 
-const SUPABASE_KEY = "sb_publishable_3Omy4ITAX9HIVvSf4PVQXA_2PKa0x15";
+const SUPABASE_KEY = "sb_publishable_3Omy4ITAX9HIVvSf4PVQXA_2PKaOxl5";
 
 const db = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
+
 
 let selectedProductId = null;
 let selectedProductPrice = 0;
