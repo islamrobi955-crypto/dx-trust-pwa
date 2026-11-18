@@ -78,8 +78,9 @@
 
   <input id="email" type="email"
     placeholder="Admin Email">
+
   <input id="password" type="password"
-  placeholder="Admin Password">
+    placeholder="Admin Password">
 
   <button onclick="adminLogin()">Login</button>
 
@@ -113,8 +114,9 @@
 
     <input id="resellerPassword"
       type="password" placeholder="পাসওয়ার্ড">
+
     <input id="referralCode"
-  placeholder="রেফারেল কোড (ঐচ্ছিক)">
+      placeholder="রেফারেল কোড (ঐচ্ছিক)">
 
     <button onclick="resellerRegister()">
       Registration
@@ -143,6 +145,7 @@
   </button>
 
 </section>
+
 
 <!-- RESELLER DASHBOARD -->
 <section id="resellerPanel">
@@ -277,6 +280,8 @@
 
     </div>
 
+
+    <!-- BONUS SETTINGS -->
     <div class="card">
 
       <h3>রিসেলার বোনাস সেটিংস</h3>
@@ -299,35 +304,57 @@
 
     </div>
 
-    
-<div class="card">
 
-  <h3>রিসেলারদের বোনাসের হিসাব</h3>
+    <!-- ADMIN RESELLER BONUS REPORT -->
+    <div class="card">
 
-  <button onclick="loadAdminResellerSummary()">
-    বোনাসের হিসাব দেখুন
-  </button>
+      <h3>রিসেলারদের বোনাসের হিসাব</h3>
 
-  <div id="adminBonusReport">
-    বোনাসের হিসাব এখানে দেখা যাবে।
-  </div>
+      <button onclick="loadAdminResellerSummary()">
+        বোনাসের হিসাব দেখুন
+      </button>
 
-</div>
+      <div id="adminBonusReport">
+        বোনাসের হিসাব এখানে দেখা যাবে।
+      </div>
 
-<!-- ADMIN REFERRAL REPORT -->
-<div class="card">
+    </div>
 
-  <h3>রেফারেল কমিশনের হিসাব</h3>
 
-  <button onclick="loadAdminReferralReport()">
-    রেফারেল হিসাব দেখুন
-  </button>
+    <!-- ADMIN REFERRAL REPORT -->
+    <div class="card">
 
-  <div id="adminReferralReport">
-    রেফারেল হিসাব এখানে দেখা যাবে।
-  </div>
+      <h3>রেফারেল কমিশনের হিসাব</h3>
 
-</div>
+      <button onclick="loadAdminReferralReport()">
+        রেফারেল হিসাব দেখুন
+      </button>
+
+      <div id="adminReferralReport">
+        রেফারেল হিসাব এখানে দেখা যাবে।
+      </div>
+
+    </div>
+
+
+    <!-- ADMIN RESELLER MANAGEMENT -->
+    <div class="card">
+
+      <h3>রিসেলার ম্যানেজমেন্ট</h3>
+
+      <p>সব রিসেলারের অ্যাকাউন্ট পরিচালনা করুন।</p>
+
+      <button onclick="loadAdminResellers()">
+        সব রিসেলার দেখুন
+      </button>
+
+      <div id="adminResellerList">
+        রিসেলারদের তালিকা এখানে দেখা যাবে।
+      </div>
+
+      <p id="resellerManageMsg" class="message"></p>
+
+    </div>
 
   </div>
 
@@ -394,4 +421,4 @@
 <script src="app.js"></script>
 
 </body>
-      </html>
+</html>
