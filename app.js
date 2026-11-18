@@ -736,7 +736,7 @@ async function loadResellerSummary() {
 
   const { data: profile, error: profileError } = await db
     .from("profiles")
-    .select("commission_balance")
+    .select("commission_balance,referral_balance,referral_code")
     .eq("id", currentResellerUser.id)
     .maybeSingle();
 
