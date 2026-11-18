@@ -32,7 +32,6 @@
     পণ্য লোড হচ্ছে...
   </div>
 
-  <!-- CUSTOMER ORDER FORM -->
   <div id="orderForm" class="card" style="display:none">
 
     <h3>অর্ডার করুন</h3>
@@ -40,23 +39,15 @@
     <p id="selectedProduct"></p>
 
     <input id="customerName" placeholder="আপনার নাম">
-
-    <input id="customerPhone" type="tel"
-      placeholder="মোবাইল নম্বর">
+    <input id="customerPhone" type="tel" placeholder="মোবাইল নম্বর">
 
     <textarea id="customerAddress"
       placeholder="সম্পূর্ণ ঠিকানা"></textarea>
 
-    <input id="orderQuantity" type="number"
-      min="1" value="1">
+    <input id="orderQuantity" type="number" min="1" value="1">
 
-    <button onclick="placeOrder()">
-      অর্ডার নিশ্চিত করুন
-    </button>
-
-    <button onclick="closeOrder()">
-      বাতিল
-    </button>
+    <button onclick="placeOrder()">অর্ডার নিশ্চিত করুন</button>
+    <button onclick="closeOrder()">বাতিল</button>
 
     <p id="orderMsg" class="message"></p>
 
@@ -76,11 +67,8 @@
 
   <h3>Admin Login</h3>
 
-  <input id="email" type="email"
-    placeholder="Admin Email">
-
-  <input id="password" type="password"
-    placeholder="Admin Password">
+  <input id="email" type="email" placeholder="Admin Email">
+  <input id="password" type="password" placeholder="Admin Password">
 
   <button onclick="adminLogin()">Login</button>
 
@@ -88,9 +76,7 @@
     Reseller Login / Registration
   </button>
 
-  <button onclick="show('store')">
-    দোকানে ফিরে যান
-  </button>
+  <button onclick="show('store')">দোকানে ফিরে যান</button>
 
   <p id="loginMsg" class="message"></p>
 
@@ -106,21 +92,12 @@
 
     <h3>নতুন রিসেলার অ্যাকাউন্ট</h3>
 
-    <input id="resellerName"
-      placeholder="আপনার নাম">
+    <input id="resellerName" placeholder="আপনার নাম">
+    <input id="resellerEmail" type="email" placeholder="ইমেইল">
+    <input id="resellerPassword" type="password" placeholder="পাসওয়ার্ড">
+    <input id="referralCode" placeholder="রেফারেল কোড (ঐচ্ছিক)">
 
-    <input id="resellerEmail"
-      type="email" placeholder="ইমেইল">
-
-    <input id="resellerPassword"
-      type="password" placeholder="পাসওয়ার্ড">
-
-    <input id="referralCode"
-      placeholder="রেফারেল কোড (ঐচ্ছিক)">
-
-    <button onclick="resellerRegister()">
-      Registration
-    </button>
+    <button onclick="resellerRegister()">Registration</button>
 
   </div>
 
@@ -128,11 +105,8 @@
 
     <h3>রিসেলার লগইন</h3>
 
-    <input id="resellerLoginEmail"
-      type="email" placeholder="ইমেইল">
-
-    <input id="resellerLoginPassword"
-      type="password" placeholder="পাসওয়ার্ড">
+    <input id="resellerLoginEmail" type="email" placeholder="ইমেইল">
+    <input id="resellerLoginPassword" type="password" placeholder="পাসওয়ার্ড">
 
     <button onclick="resellerLogin()">Login</button>
 
@@ -140,9 +114,7 @@
 
   <p id="resellerMsg" class="message"></p>
 
-  <button onclick="show('store')">
-    দোকানে ফিরে যান
-  </button>
+  <button onclick="show('store')">দোকানে ফিরে যান</button>
 
 </section>
 
@@ -154,21 +126,19 @@
 
   <p id="resellerWelcome"></p>
 
+  <!-- RESELLER EARNINGS -->
   <div class="card">
 
     <h3>আমার আয়</h3>
 
+    <p>কমিশন আয়:</p>
     <p id="resellerEarnings">৳0</p>
 
-    <p>
-      রেফারেল আয়:
-      <span id="referralEarnings">৳0</span>
-    </p>
+    <p>রেফারেল আয়:</p>
+    <p id="referralEarnings">৳0</p>
 
-    <p>
-      আমার রেফারেল কোড:
-      <span id="myReferralCode">লোড হচ্ছে...</span>
-    </p>
+    <p>আমার রেফারেল কোড:</p>
+    <span id="myReferralCode">লোড হচ্ছে...</span>
 
     <button onclick="copyReferralLink()">
       আমার Referral Link কপি করো
@@ -176,20 +146,77 @@
 
     <p id="referralLinkMsg" class="message"></p>
 
-    <p id="resellerSales">
-      মাসিক বিক্রি: ৳0
-    </p>
+    <p id="resellerSales">মাসিক বিক্রি: ৳0</p>
 
     <p id="resellerBonusStatus">
       বোনাসের অবস্থা লোড হচ্ছে...
     </p>
 
-    <p id="resellerTarget">
-      লক্ষ্য: ৳100000
-    </p>
+    <p id="resellerTarget">লক্ষ্য: ৳100000</p>
 
   </div>
 
+
+  <!-- RESELLER WITHDRAWAL -->
+  <div class="card">
+
+    <h3>টাকা উত্তোলন</h3>
+
+    <p>উত্তোলনযোগ্য মোট ব্যালেন্স:</p>
+
+    <h2 id="withdrawableBalance">৳0</h2>
+
+    <p>কমিশন, রেফারেল আয় ও বোনাস মিলিয়ে এই টাকা উত্তোলন করতে পারবে।</p>
+
+    <label for="withdrawAmount">কত টাকা উত্তোলন করবে?</label>
+
+    <input
+      id="withdrawAmount"
+      type="number"
+      min="1"
+      step="0.01"
+      placeholder="টাকার পরিমাণ">
+
+    <label for="withdrawMethod">পেমেন্ট মাধ্যম</label>
+
+    <select id="withdrawMethod">
+      <option value="bkash">bKash</option>
+      <option value="nagad">Nagad</option>
+    </select>
+
+    <label for="withdrawNumber">যে নম্বরে টাকা নিতে চাও</label>
+
+    <input
+      id="withdrawNumber"
+      type="tel"
+      placeholder="01XXXXXXXXX">
+
+    <button onclick="requestWithdrawal()">
+      টাকা উত্তোলনের আবেদন করুন
+    </button>
+
+    <p id="withdrawMsg" class="message"></p>
+
+  </div>
+
+
+  <!-- RESELLER WITHDRAWAL HISTORY -->
+  <div class="card">
+
+    <h3>আমার উত্তোলনের আবেদন</h3>
+
+    <button onclick="loadResellerWithdrawals()">
+      আবেদন Refresh
+    </button>
+
+    <div id="resellerWithdrawalList">
+      আবেদনের তালিকা এখানে দেখা যাবে।
+    </div>
+
+  </div>
+
+
+  <!-- RESELLER ORDER FORM -->
   <div class="card">
 
     <h3>কাস্টমারের অর্ডার জমা দিন</h3>
@@ -198,8 +225,7 @@
       পণ্য লোড হচ্ছে...
     </div>
 
-    <input id="resellerCustomerName"
-      placeholder="কাস্টমারের নাম">
+    <input id="resellerCustomerName" placeholder="কাস্টমারের নাম">
 
     <input id="resellerCustomerPhone"
       type="tel" placeholder="মোবাইল নম্বর">
@@ -207,24 +233,21 @@
     <textarea id="resellerCustomerAddress"
       placeholder="সম্পূর্ণ ঠিকানা"></textarea>
 
-    <input id="resellerQuantity"
-      type="number" min="1" value="1">
+    <input id="resellerQuantity" type="number" min="1" value="1">
 
-    <button onclick="placeResellerOrder()">
-      অর্ডার জমা দিন
-    </button>
+    <button onclick="placeResellerOrder()">অর্ডার জমা দিন</button>
 
     <p id="resellerOrderMsg" class="message"></p>
 
   </div>
 
+
+  <!-- RESELLER ORDERS -->
   <div class="card">
 
     <h3>আমার অর্ডার</h3>
 
-    <button onclick="loadResellerOrders()">
-      Refresh
-    </button>
+    <button onclick="loadResellerOrders()">Refresh</button>
 
     <div id="resellerOrderList"></div>
 
@@ -244,25 +267,11 @@
 
   <div class="menu">
 
-    <button onclick="showPage('dashboard')">
-      Dashboard
-    </button>
-
-    <button onclick="showPage('products')">
-      Products
-    </button>
-
-    <button onclick="showPage('orders')">
-      Orders
-    </button>
-
-    <button onclick="show('store')">
-      Store
-    </button>
-
-    <button onclick="logout()">
-      Logout
-    </button>
+    <button onclick="showPage('dashboard')">Dashboard</button>
+    <button onclick="showPage('products')">Products</button>
+    <button onclick="showPage('orders')">Orders</button>
+    <button onclick="show('store')">Store</button>
+    <button onclick="logout()">Logout</button>
 
   </div>
 
@@ -275,7 +284,6 @@
       <h3>DX TRUST Admin</h3>
 
       <p>তোমার অ্যাডমিন প্যানেলে স্বাগতম।</p>
-
       <p>এখান থেকে পণ্য ও অর্ডার পরিচালনা করতে পারবে।</p>
 
     </div>
@@ -286,15 +294,13 @@
 
       <h3>রিসেলার বোনাস সেটিংস</h3>
 
-      <label>মাসিক বিক্রির লক্ষ্য</label>
+      <label for="bonusTarget">মাসিক বিক্রির লক্ষ্য</label>
 
-      <input id="bonusTarget"
-        type="number" value="100000">
+      <input id="bonusTarget" type="number" value="100000">
 
-      <label>বোনাসের পরিমাণ (৳)</label>
+      <label for="bonusAmount">বোনাসের পরিমাণ (৳)</label>
 
-      <input id="bonusAmount"
-        type="number" min="0" value="1000">
+      <input id="bonusAmount" type="number" min="0" value="1000">
 
       <button onclick="saveBonusSettings()">
         বোনাস সেটিংস সংরক্ষণ
@@ -337,12 +343,10 @@
     </div>
 
 
-    <!-- ADMIN RESELLER MANAGEMENT -->
+    <!-- ADMIN RESELLER LIST -->
     <div class="card">
 
-      <h3>রিসেলার ম্যানেজমেন্ট</h3>
-
-      <p>সব রিসেলারের অ্যাকাউন্ট পরিচালনা করুন।</p>
+      <h3>রিসেলার তালিকা</h3>
 
       <button onclick="loadAdminResellers()">
         সব রিসেলার দেখুন
@@ -356,6 +360,26 @@
 
     </div>
 
+
+    <!-- ADMIN WITHDRAWAL MANAGEMENT -->
+    <div class="card">
+
+      <h3>রিসেলার টাকা উত্তোলনের আবেদন</h3>
+
+      <p>রিসেলারদের সব উত্তোলনের আবেদন এখানে দেখা যাবে।</p>
+
+      <button onclick="loadAdminWithdrawals()">
+        আবেদন Refresh করুন
+      </button>
+
+      <div id="adminWithdrawalList">
+        উত্তোলনের আবেদন এখানে দেখা যাবে।
+      </div>
+
+      <p id="adminWithdrawalMsg" class="message"></p>
+
+    </div>
+
   </div>
 
 
@@ -364,32 +388,26 @@
 
     <h3>নতুন পণ্য যোগ করো</h3>
 
-    <input id="productName"
-      placeholder="পণ্যের নাম">
+    <input id="productName" placeholder="পণ্যের নাম">
 
     <textarea id="productDescription"
       placeholder="পণ্যের বিবরণ"></textarea>
 
     <input id="productPrice"
-      type="number" min="0"
-      placeholder="পণ্যের দাম">
+      type="number" min="0" placeholder="পণ্যের দাম">
 
-    <label>পণ্যের ছবি নির্বাচন করুন</label>
+    <label for="productImageFile">পণ্যের ছবি নির্বাচন করুন</label>
 
     <input id="productImageFile"
       type="file" accept="image/*">
 
-    <button onclick="addProduct()">
-      পণ্য যোগ করো
-    </button>
+    <button onclick="addProduct()">পণ্য যোগ করো</button>
 
     <p id="productMsg" class="message"></p>
 
     <h3>সব পণ্য</h3>
 
-    <div id="productList">
-      লোড হচ্ছে...
-    </div>
+    <div id="productList">লোড হচ্ছে...</div>
 
   </div>
 
@@ -399,13 +417,9 @@
 
     <h3>কাস্টমার ও রিসেলার অর্ডার</h3>
 
-    <button onclick="loadOrders()">
-      Refresh Orders
-    </button>
+    <button onclick="loadOrders()">Refresh Orders</button>
 
-    <div id="orderList">
-      অর্ডার লোড হচ্ছে...
-    </div>
+    <div id="orderList">অর্ডার লোড হচ্ছে...</div>
 
   </div>
 
