@@ -837,7 +837,36 @@ async function loadResellerSummary() {
         : "এই মাসের বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
   }
 }
+/* COPY RESELLER REFERRAL LINK */
 
+async function copyReferralLink() {
+  if (!currentResellerUser) return;
+
+  const msg = document.getElementById("referralLinkMsg");
+
+  const { data, error } = await db
+    .from("profiles")
+    .select("referral_code")
+    .eq("id", currentResellerUser.id)
+    .maybeSingle();
+
+  if (error || !data?.referral_code) {
+    msg.textContent = "রেফারেল কোড পাওয়া যায়নি।";
+    return;
+  }
+
+  const link = window.location.origin +
+    window.location.pathname +
+    "?ref=" + encodeURIComponent(data.referral_code);
+
+  try {
+    await navigator.clipboard.writeText(link);
+    msg.textContent = "রেফারেল লিংক কপি হয়েছে।";
+  } catch {
+    msg.textContent =
+      "লিংক কপি হয়নি। কোড: " + data.referral_code;
+  }
+               }
 
 
 /* ADMIN BONUS SETTINGS */
