@@ -1129,7 +1129,98 @@ async function loadAdminResellerSummary() {
     box.appendChild(item);
   });
 }
+/* ADMIN REFERRAL COMMISSION REPORT */
 
+async function loadAdminReferralReport() {
+  const box = document.getElementById("adminReferralReport");
+
+  if (!box) return;
+
+  box.textContent = "রেফারেল হিসাব লোড হচ্ছে...";
+
+  const { data: sessionData } = await db.auth.getSession();
+  const user = sessionData?.session?.user;
+
+  if (!user) {
+    box.textContent = "আগে Admin Login করো।";
+    return;
+  }
+
+  const { data: admin, error: adminError } = await db
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (adminError || admin?.role !== "admin") {
+    box.textContent = "শুধু Admin এই রিপোর্ট দেখতে পারবে।";
+    return;
+  }
+
+  const { data: rewards, error } = await db
+    .from("referral_rewards")
+    .select("order_id,referrer_id,referred_reseller_id,reward_amount,created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    box.textContent = "রিপোর্ট সমস্যা: " + error.message;
+    return;
+  }
+
+  if (!rewards || rewards.length === 0) {
+    box.textContent = "এখনো কোনো Referral কমিশন পাওয়া যায়নি।";
+    return;
+  }
+
+  const ids = [...new Set(
+    rewards.flatMap(r => [
+      r.referrer_id,
+      r.referred_reseller_id
+    ])
+  )];
+
+  const { data: profiles, error: profileError } = await db
+    .from("profiles")
+    .select("id,full_name")
+    .in("id", ids);
+
+  if (profileError) {
+    box.textContent = "রিসেলার তথ্য সমস্যা: " + profileError.message;
+    return;
+  }
+
+  const total = rewards.reduce(
+    (sum, r) => sum + Number(r.reward_amount || 0),
+    0
+  );
+
+  box.innerHTML = "";
+
+  const summary = document.createElement("div");
+  summary.className = "card";
+  summary.textContent =
+    "মোট Referral কমিশন: ৳" + total +
+    " | মোট কমিশন: " + rewards.length + " টি";
+
+  box.appendChild(summary);
+
+  rewards.forEach(r => {
+    const referrer = profiles.find(p => p.id === r.referrer_id);
+    const referred = profiles.find(p => p.id === r.referred_reseller_id);
+
+    const item = document.createElement("div");
+    item.className = "card";
+
+    item.textContent =
+      "Referral দিয়েছেন: " + (referrer?.full_name || "নাম পাওয়া যায়নি") +
+      "\nReferral রিসেলার: " + (referred?.full_name || "নাম পাওয়া যায়নি") +
+      "\nঅর্ডার ID: " + r.order_id +
+      "\nকমিশন: ৳" + Number(r.reward_amount) +
+      "\nতারিখ: " + new Date(r.created_at).toLocaleString("bn-BD");
+
+    box.appendChild(item);
+  });
+   }
 
 /* ADMIN LOAD PRODUCTS */
 
