@@ -728,8 +728,6 @@ async function loadResellerOrders() {
   });
 }
 
-
-/* RESELLER EARNINGS AND MONTHLY SALES */
 /* RESELLER EARNINGS AND MONTHLY SALES */
 
 async function loadResellerSummary() {
