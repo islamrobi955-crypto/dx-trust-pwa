@@ -748,7 +748,14 @@ async function loadResellerSummary() {
 
   document.getElementById("resellerEarnings").textContent =
     "৳" + Number(profile?.commission_balance || 0);
+document.getElementById("resellerEarnings").textContent =
+  "৳" + Number(profile?.commission_balance || 0);
 
+document.getElementById("referralEarnings").textContent =
+  "৳" + Number(profile?.referral_balance || 0);
+
+document.getElementById("myReferralCode").textContent =
+  profile?.referral_code || "কোড পাওয়া যায়নি";
   const now = new Date();
 
   const start = new Date(
