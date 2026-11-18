@@ -2,17 +2,16 @@
    DX TRUST MEDIA LIFESTYLE COX
    MAIN JAVASCRIPT
 ===================================== */
+
 /* SUPABASE CONNECTION */
 
 const SUPABASE_URL = "https://oloasnzcnqeakfpwtttc.supabase.co";
-
 const SUPABASE_KEY = "sb_publishable_3Omy4ITAX9HIVvSf4PVQXA_2PKaOxl5";
 
 const db = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-
 
 let selectedProductId = null;
 let selectedProductPrice = 0;
@@ -49,10 +48,13 @@ function showPage(id) {
   });
 
   if (id === "products") loadProducts();
+
   if (id === "orders") loadOrders();
+
   if (id === "dashboard") {
     loadBonusSettings();
     loadAdminResellerSummary();
+    loadAdminWithdrawals();
   }
 }
 
@@ -125,6 +127,8 @@ async function verifyAdmin(user, msgId = "loginMsg") {
     await loadResellerProducts();
     await loadResellerOrders();
     await loadResellerSummary();
+    await loadResellerWithdrawals();
+
     return;
   }
 
@@ -136,7 +140,7 @@ async function verifyAdmin(user, msgId = "loginMsg") {
 
     show("panel");
     showPage("dashboard");
-    await loadBonusSettings();
+
     return;
   }
 
@@ -159,13 +163,14 @@ async function logout() {
 
 
 /* RESELLER REGISTRATION */
-/* RESELLER REGISTRATION */
 
 async function resellerRegister() {
   const name = document.getElementById("resellerName").value.trim();
   const email = document.getElementById("resellerEmail").value.trim();
   const password = document.getElementById("resellerPassword").value;
-  const referralCode = document.getElementById("referralCode").value.trim().toUpperCase();
+  const referralCode =
+    document.getElementById("referralCode").value.trim().toUpperCase();
+
   const msg = document.getElementById("resellerMsg");
 
   if (!name || !email || !password) {
@@ -180,9 +185,9 @@ async function resellerRegister() {
 
   msg.textContent = "অ্যাকাউন্ট তৈরি হচ্ছে...";
 
-  const { data, error } = await db.auth.signUp({
-    email: email,
-    password: password,
+  const { error } = await db.auth.signUp({
+    email,
+    password,
     options: {
       data: {
         full_name: name,
@@ -362,9 +367,9 @@ async function placeOrder() {
   const { error } = await db.from("orders").insert({
     product_id: selectedProductId,
     customer_name: name,
-    phone: phone,
-    address: address,
-    quantity: quantity
+    phone,
+    address,
+    quantity
   });
 
   if (error) {
@@ -387,6 +392,7 @@ async function placeOrder() {
 
 async function addProduct() {
   const name = document.getElementById("productName").value.trim();
+
   const description =
     document.getElementById("productDescription").value.trim();
 
@@ -415,8 +421,10 @@ async function addProduct() {
     msg.textContent = "ছবি আপলোড হচ্ছে...";
 
     const extension = file.name.split(".").pop();
+
     const fileName =
-      Date.now() + "-" + Math.random().toString(36).slice(2) +
+      Date.now() + "-" +
+      Math.random().toString(36).slice(2) +
       "." + extension;
 
     const { error: uploadError } = await db.storage
@@ -438,9 +446,9 @@ async function addProduct() {
   msg.textContent = "পণ্য সংরক্ষণ হচ্ছে...";
 
   const { error } = await db.from("products").insert({
-    name: name,
-    description: description,
-    price: price,
+    name,
+    description,
+    price,
     image_url: imageUrl
   });
 
@@ -664,9 +672,9 @@ async function placeResellerOrder() {
   const { error } = await db.from("orders").insert({
     product_id: resellerSelectedProductId,
     customer_name: name,
-    phone: phone,
-    address: address,
-    quantity: quantity,
+    phone,
+    address,
+    quantity,
     reseller_id: currentResellerUser.id,
     status: "pending"
   });
@@ -729,6 +737,7 @@ async function loadResellerOrders() {
   });
 }
 
+
 /* RESELLER EARNINGS AND MONTHLY SALES */
 
 async function loadResellerSummary() {
@@ -736,7 +745,7 @@ async function loadResellerSummary() {
 
   const { data: profile, error: profileError } = await db
     .from("profiles")
-    .select("commission_balance,referral_balance,referral_code")
+    .select("commission_balance,referral_balance,bonus_balance,referral_code")
     .eq("id", currentResellerUser.id)
     .maybeSingle();
 
@@ -746,11 +755,23 @@ async function loadResellerSummary() {
     return;
   }
 
+  const commission = Number(profile?.commission_balance || 0);
+  const referral = Number(profile?.referral_balance || 0);
+  const bonus = Number(profile?.bonus_balance || 0);
+
+  const total = commission + referral + bonus;
+
   document.getElementById("resellerEarnings").textContent =
-    "৳" + Number(profile?.commission_balance || 0);
+    "৳" + commission;
 
   document.getElementById("referralEarnings").textContent =
-    "৳" + Number(profile?.referral_balance || 0);
+    "৳" + referral;
+
+  const withdrawable = document.getElementById("withdrawableBalance");
+
+  if (withdrawable) {
+    withdrawable.textContent = "৳" + total.toFixed(2);
+  }
 
   document.getElementById("myReferralCode").textContent =
     profile?.referral_code || "কোড পাওয়া যায়নি";
@@ -816,6 +837,7 @@ async function loadResellerSummary() {
       "লক্ষ্য লোড সমস্যা: " + targetError.message;
   } else {
     const target = Number(targetData || 100000);
+
     const progress = target > 0
       ? Math.min(100, sales / target * 100).toFixed(1)
       : "0.0";
@@ -838,6 +860,8 @@ async function loadResellerSummary() {
         : "এই মাসের বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
   }
 }
+
+
 /* COPY RESELLER REFERRAL LINK */
 
 async function copyReferralLink() {
@@ -867,7 +891,245 @@ async function copyReferralLink() {
     msg.textContent =
       "লিংক কপি হয়নি। কোড: " + data.referral_code;
   }
-               }
+}
+
+
+/* =====================================
+   RESELLER WITHDRAWAL SYSTEM
+===================================== */
+
+
+/* REQUEST WITHDRAWAL */
+
+async function requestWithdrawal() {
+  const msg = document.getElementById("withdrawMsg");
+
+  if (!currentResellerUser) {
+    msg.textContent = "আগে রিসেলার লগইন করো।";
+    return;
+  }
+
+  const amount = Number(
+    document.getElementById("withdrawAmount").value
+  );
+
+  const method =
+    document.getElementById("withdrawMethod").value;
+
+  const number =
+    document.getElementById("withdrawNumber").value.trim();
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    msg.textContent = "সঠিক টাকার পরিমাণ লিখো।";
+    return;
+  }
+
+  if (!method) {
+    msg.textContent = "bKash অথবা Nagad নির্বাচন করো।";
+    return;
+  }
+
+  if (!number) {
+    msg.textContent = "মোবাইল নম্বর লিখো।";
+    return;
+  }
+
+  msg.textContent = "আবেদন জমা হচ্ছে...";
+
+  const { data, error } = await db.rpc("request_withdrawal", {
+    p_amount: amount,
+    p_payment_method: method,
+    p_payment_number: number
+  });
+
+  if (error) {
+    msg.textContent = "আবেদন সমস্যা: " + error.message;
+    return;
+  }
+
+  msg.textContent =
+    "আবেদন সফল হয়েছে। আবেদন নম্বর: " + data;
+
+  document.getElementById("withdrawAmount").value = "";
+
+  await loadResellerSummary();
+  await loadResellerWithdrawals();
+}
+
+
+/* RESELLER WITHDRAWAL HISTORY */
+
+async function loadResellerWithdrawals() {
+  const box = document.getElementById("resellerWithdrawalList");
+
+  if (!box || !currentResellerUser) return;
+
+  box.textContent = "আবেদনের তালিকা লোড হচ্ছে...";
+
+  const { data, error } = await db
+    .from("withdrawal_requests")
+    .select("*")
+    .eq("reseller_id", currentResellerUser.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    box.textContent = "আবেদন লোড সমস্যা: " + error.message;
+    return;
+  }
+
+  box.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    box.textContent = "এখনো কোনো টাকা তোলার আবেদন করা হয়নি।";
+    return;
+  }
+
+  data.forEach(r => {
+    const item = document.createElement("div");
+    item.className = "card";
+
+    const status = {
+      pending: "অপেক্ষমাণ",
+      approved: "অনুমোদিত",
+      paid: "পরিশোধিত",
+      rejected: "বাতিল"
+    };
+
+    item.textContent =
+      "আবেদন ID: " + r.id +
+      "\nটাকার পরিমাণ: ৳" + Number(r.amount).toFixed(2) +
+      "\nপেমেন্ট মাধ্যম: " + r.payment_method.toUpperCase() +
+      "\nমোবাইল নম্বর: " + r.payment_number +
+      "\nআবেদনের তারিখ: " +
+      new Date(r.created_at).toLocaleString("bn-BD") +
+      "\nঅবস্থা: " + (status[r.status] || r.status);
+
+    box.appendChild(item);
+  });
+}
+
+
+/* ADMIN WITHDRAWAL LIST */
+
+async function loadAdminWithdrawals() {
+  const box = document.getElementById("adminWithdrawalList");
+
+  if (!box) return;
+
+  box.textContent = "Withdrawal আবেদন লোড হচ্ছে...";
+
+  const { data: requests, error } = await db
+    .from("withdrawal_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    box.textContent = "আবেদন লোড সমস্যা: " + error.message;
+    return;
+  }
+
+  box.innerHTML = "";
+
+  if (!requests || requests.length === 0) {
+    box.textContent = "এখনো কোনো Withdrawal আবেদন আসেনি।";
+    return;
+  }
+
+  const resellerIds = [
+    ...new Set(requests.map(r => r.reseller_id))
+  ];
+
+  const { data: profiles, error: profileError } = await db
+    .from("profiles")
+    .select("id,full_name")
+    .in("id", resellerIds);
+
+  if (profileError) {
+    box.textContent = "রিসেলার তথ্য সমস্যা: " + profileError.message;
+    return;
+  }
+
+  requests.forEach(r => {
+    const profile = (profiles || []).find(
+      p => p.id === r.reseller_id
+    );
+
+    const item = document.createElement("div");
+    item.className = "card";
+
+    const status = {
+      pending: "অপেক্ষমাণ",
+      approved: "অনুমোদিত",
+      paid: "পরিশোধিত",
+      rejected: "বাতিল"
+    };
+
+    const info = document.createElement("p");
+
+    info.textContent =
+      "আবেদন ID: " + r.id +
+      "\nরিসেলার: " + (profile?.full_name || "নাম পাওয়া যায়নি") +
+      "\nটাকার পরিমাণ: ৳" + Number(r.amount).toFixed(2) +
+      "\nপেমেন্ট মাধ্যম: " + r.payment_method.toUpperCase() +
+      "\nমোবাইল নম্বর: " + r.payment_number +
+      "\nকমিশন থেকে: ৳" + Number(r.commission_amount || 0) +
+      "\nরেফারেল থেকে: ৳" + Number(r.referral_amount || 0) +
+      "\nবোনাস থেকে: ৳" + Number(r.bonus_amount || 0) +
+      "\nআবেদনের তারিখ: " +
+      new Date(r.created_at).toLocaleString("bn-BD") +
+      "\nঅবস্থা: " + (status[r.status] || r.status);
+
+    item.appendChild(info);
+
+    if (r.status === "pending") {
+      const paidBtn = document.createElement("button");
+
+      paidBtn.textContent = "টাকা পরিশোধিত";
+      paidBtn.onclick = () => processWithdrawal(r.id, "paid");
+
+      item.appendChild(paidBtn);
+
+      const rejectBtn = document.createElement("button");
+
+      rejectBtn.textContent = "আবেদন বাতিল";
+      rejectBtn.className = "danger";
+      rejectBtn.onclick = () => processWithdrawal(r.id, "rejected");
+
+      item.appendChild(rejectBtn);
+    }
+
+    box.appendChild(item);
+  });
+}
+
+
+/* ADMIN PROCESS WITHDRAWAL */
+
+async function processWithdrawal(id, action) {
+  const confirmText = action === "paid"
+    ? "এই আবেদনটি পরিশোধিত হিসেবে চিহ্নিত করবে?"
+    : "এই আবেদনটি বাতিল করবে? বাতিল হলে টাকা রিসেলারের ব্যালেন্সে ফেরত যাবে।";
+
+  if (!confirm(confirmText)) return;
+
+  const { error } = await db.rpc("admin_process_withdrawal", {
+    p_request_id: id,
+    p_action: action
+  });
+
+  if (error) {
+    alert("আবেদন আপডেট সমস্যা: " + error.message);
+    return;
+  }
+
+  alert(
+    action === "paid"
+      ? "আবেদন পরিশোধিত হয়েছে।"
+      : "আবেদন বাতিল হয়েছে এবং টাকা ফেরত দেওয়া হয়েছে।"
+  );
+
+  await loadAdminWithdrawals();
+}
 
 
 /* ADMIN BONUS SETTINGS */
@@ -880,8 +1142,11 @@ async function loadBonusSettings() {
     .maybeSingle();
 
   if (error) {
-    document.getElementById("bonusMsg").textContent =
+    const msg = document.getElementById("bonusMsg");
+
+    if (msg) msg.textContent =
       "লোড সমস্যা: " + error.message;
+
     return;
   }
 
@@ -939,6 +1204,8 @@ async function saveBonusSettings() {
 async function loadAdminBonusReport() {
   const box = document.getElementById("adminBonusReport");
 
+  if (!box) return;
+
   box.textContent = "বোনাসের হিসাব লোড হচ্ছে...";
 
   const { data: bonuses, error } = await db
@@ -990,6 +1257,8 @@ async function loadAdminBonusReport() {
 
 async function loadAdminResellerSummary() {
   const box = document.getElementById("adminBonusReport");
+
+  if (!box) return;
 
   box.textContent = "সব রিসেলারের হিসাব লোড হচ্ছে...";
 
@@ -1129,6 +1398,8 @@ async function loadAdminResellerSummary() {
     box.appendChild(item);
   });
 }
+
+
 /* ADMIN REFERRAL COMMISSION REPORT */
 
 async function loadAdminReferralReport() {
@@ -1198,6 +1469,7 @@ async function loadAdminReferralReport() {
 
   const summary = document.createElement("div");
   summary.className = "card";
+
   summary.textContent =
     "মোট Referral কমিশন: ৳" + total +
     " | মোট কমিশন: " + rewards.length + " টি";
@@ -1220,7 +1492,8 @@ async function loadAdminReferralReport() {
 
     box.appendChild(item);
   });
-   }
+}
+
 
 /* ADMIN LOAD PRODUCTS */
 
@@ -1297,6 +1570,7 @@ async function checkSession() {
     await verifyAdmin(data.session.user);
   }
 }
+
 
 /* AUTO FILL REFERRAL CODE FROM URL */
 
