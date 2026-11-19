@@ -1,9 +1,12 @@
-/* =====================================
+/* =====================================================
    DX TRUST MEDIA LIFESTYLE COX
-   MAIN JAVASCRIPT
-===================================== */
+   COMPLETE MAIN JAVASCRIPT
+===================================================== */
 
-/* SUPABASE CONNECTION */
+
+/* =====================================================
+   1. SUPABASE CONNECTION
+===================================================== */
 
 const SUPABASE_URL = "https://oloasnzcnqeakfpwtttc.supabase.co";
 
@@ -15,366 +18,179 @@ const db = window.supabase.createClient(
 );
 
 
-/* GLOBAL VARIABLES */
+/* =====================================================
+   2. GLOBAL VARIABLES
+===================================================== */
 
-let selectedProductId = null;
-let selectedProductPrice = 0;
-let currentResellerUser = null;
-let resellerSelectedProductId = null;
+let currentUser = null;
+let currentProfile = null;
+let selectedStoreProduct = null;
+let selectedResellerProduct = null;
+
+const STORAGE_BUCKET = "product-images";
+const MAX_PRODUCT_IMAGES = 5;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 
-/* GET PRODUCT IMAGES */
+/* =====================================================
+   3. COMMON HELPERS
+===================================================== */
+
+function getElement(id) {
+  return document.getElementById(id);
+}
+
+function getValue(id) {
+  const element = getElement(id);
+  return element ? element.value.trim() : "";
+}
+
+function setText(id, value) {
+  const element = getElement(id);
+  if (element) element.textContent = value ?? "";
+}
+
+function setHTML(id, value) {
+  const element = getElement(id);
+  if (element) element.innerHTML = value ?? "";
+}
+
+function taka(value) {
+  return "৳" + Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function showMessage(id, message, isError = false) {
+  const element = getElement(id);
+  if (!element) return;
+
+  element.textContent = message;
+  element.style.color = isError ? "#ff5555" : "#d6a600";
+}
 
 function getProductImages(product) {
-  if (
-    Array.isArray(product.image_urls) &&
-    product.image_urls.length > 0
-  ) {
-    return product.image_urls.filter(Boolean);
+  let images = [];
+
+  if (Array.isArray(product.image_urls)) {
+    images = product.image_urls;
+  } else if (typeof product.image_urls === "string") {
+    try {
+      images = JSON.parse(product.image_urls);
+    } catch {
+      images = [];
+    }
   }
 
-  return product.image_url
-    ? [product.image_url]
-    : [];
+  if (!images.length && product.image_url) {
+    images = [product.image_url];
+  }
+
+  return images.filter(Boolean);
 }
 
-
-/* SHOW PRODUCT IMAGE GALLERY */
-
-function appendProductGallery(container, product) {
+function productImageHTML(product) {
   const images = getProductImages(product);
 
-  if (!images.length) return;
-
-  const gallery = document.createElement("div");
-  gallery.style.marginBottom = "12px";
-
-  const mainImage = document.createElement("img");
-
-  mainImage.src = images[0];
-  mainImage.alt = product.name || "Product";
-  mainImage.style.width = "100%";
-  mainImage.style.maxWidth = "350px";
-  mainImage.style.height = "220px";
-  mainImage.style.objectFit = "contain";
-  mainImage.style.borderRadius = "10px";
-  mainImage.style.display = "block";
-
-  gallery.appendChild(mainImage);
-
-  if (images.length > 1) {
-    const thumbnails = document.createElement("div");
-
-    thumbnails.style.display = "flex";
-    thumbnails.style.flexWrap = "wrap";
-    thumbnails.style.gap = "7px";
-    thumbnails.style.marginTop = "8px";
-
-    images.forEach(url => {
-      const thumb = document.createElement("img");
-
-      thumb.src = url;
-      thumb.alt = "Product image";
-      thumb.style.width = "58px";
-      thumb.style.height = "58px";
-      thumb.style.objectFit = "cover";
-      thumb.style.borderRadius = "6px";
-      thumb.style.cursor = "pointer";
-      thumb.style.border = "2px solid transparent";
-
-      thumb.onclick = () => {
-        mainImage.src = url;
-      };
-
-      thumbnails.appendChild(thumb);
-    });
-
-    gallery.appendChild(thumbnails);
+  if (!images.length) {
+    return `<div class="product-no-image">ছবি নেই</div>`;
   }
 
-  container.appendChild(gallery);
+  return `
+    <div class="product-gallery">
+      <img
+        src="${escapeHTML(images[0])}"
+        alt="${escapeHTML(product.name)}"
+        loading="lazy"
+        style="width:100%;height:190px;object-fit:cover;border-radius:10px;"
+      >
+      ${
+        images.length > 1
+          ? `<div class="product-image-count">${images.length} টি ছবি</div>`
+          : ""
+      }
+    </div>
+  `;
 }
 
-/* =====================================
-   PAGE CONTROL
-===================================== */
+function formatDate(value) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleString("bn-BD", {
+    dateStyle: "short",
+    timeStyle: "short"
+  });
+}
+
+
+/* =====================================================
+   4. PAGE NAVIGATION
+===================================================== */
 
 function show(id) {
-  const section = document.getElementById(id);
+  const pages = [
+    "store",
+    "login",
+    "resellerAuth",
+    "resellerPanel",
+    "panel"
+  ];
 
-  if (!section) {
-    console.error("Section not found:", id);
-    return;
+  pages.forEach(page => {
+    const element = getElement(page);
+    if (element) element.style.display = "none";
+  });
+
+  const target = getElement(id);
+  if (target) target.style.display = "block";
+}
+
+function showPage(page) {
+  const sections = ["dashboard", "products", "orders"];
+
+  sections.forEach(section => {
+    const element = getElement(section);
+    if (element) element.style.display = "none";
+  });
+
+  const target = getElement(page);
+  if (target) target.style.display = "block";
+
+  if (page === "dashboard") {
+    loadBonusSettings();
+    loadAdminWithdrawals();
   }
 
-  document.querySelectorAll("section").forEach(s => {
-    s.classList.remove("active");
-  });
-
-  section.classList.add("active");
-
-  window.scrollTo(0, 0);
-}
-
-
-function openLogin() {
-  show("login");
-}
-
-
-function showPage(id) {
-  ["dashboard", "products", "orders"].forEach(x => {
-    const el = document.getElementById(x);
-
-    if (el) {
-      el.style.display = x === id ? "block" : "none";
-    }
-  });
-
-  if (id === "products") {
+  if (page === "products") {
     loadProducts();
   }
 
-  if (id === "orders") {
+  if (page === "orders") {
     loadOrders();
   }
-
-  if (id === "dashboard") {
-    loadBonusSettings();
-    loadAdminResellerSummary();
-    loadAdminWithdrawals();
-  }
 }
 
 
-/* =====================================
-   ADMIN LOGIN
-===================================== */
-
-async function adminLogin() {
-  const email = document.getElementById("email").value.trim();
-
-  const password = document.getElementById("password").value;
-
-  const msg = document.getElementById("loginMsg");
-
-  if (!email || !password) {
-    msg.textContent = "ইমেইল ও পাসওয়ার্ড দাও।";
-    return;
-  }
-
-  msg.textContent = "Login হচ্ছে...";
-
-  try {
-    const { data, error } = await db.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      msg.textContent = "Login Error: " + error.message;
-      return;
-    }
-
-    await verifyAdmin(data.user, "loginMsg");
-
-  } catch (error) {
-    msg.textContent = "সমস্যা: " + error.message;
-  }
-}
-
-
-/* =====================================
-   VERIFY USER ROLE
-===================================== */
-
-async function verifyAdmin(user, msgId = "loginMsg") {
-  const msg = document.getElementById(msgId);
-
-  const { data: p, error } = await db
-    .from("profiles")
-    .select("role,full_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error || !p) {
-    await db.auth.signOut();
-
-    if (msg) {
-      msg.textContent =
-        "প্রোফাইল সমস্যা: " +
-        (error?.message || "প্রোফাইল পাওয়া যায়নি");
-    }
-
-    show(msgId === "resellerMsg" ? "resellerAuth" : "login");
-
-    return;
-  }
-
-  if (p.role === "reseller") {
-    currentResellerUser = user;
-
-    document.getElementById("resellerWelcome").textContent =
-      "স্বাগতম, " + (p.full_name || user.email);
-
-    show("resellerPanel");
-
-    await loadResellerProducts();
-    await loadResellerOrders();
-    await loadResellerSummary();
-    await loadResellerWithdrawals();
-
-    return;
-  }
-
-  if (p.role === "admin") {
-    currentResellerUser = null;
-
-    document.getElementById("adminName").textContent =
-      "Admin: " + (p.full_name || user.email);
-
-    show("panel");
-
-    showPage("dashboard");
-
-    return;
-  }
-
-  await db.auth.signOut();
-
-  currentResellerUser = null;
-
-  show("store");
-}
-
-
-/* =====================================
-   ADMIN LOGOUT
-===================================== */
-
-async function logout() {
-  await db.auth.signOut();
-
-  currentResellerUser = null;
-
-  document.getElementById("password").value = "";
-
-  show("store");
-}
-
-/* =====================================
-   RESELLER REGISTRATION
-===================================== */
-
-async function resellerRegister() {
-  const name =
-    document.getElementById("resellerName").value.trim();
-
-  const email =
-    document.getElementById("resellerEmail").value.trim();
-
-  const password =
-    document.getElementById("resellerPassword").value;
-
-  const referralCode =
-    document.getElementById("referralCode").value.trim().toUpperCase();
-
-  const msg = document.getElementById("resellerMsg");
-
-  if (!name || !email || !password) {
-    msg.textContent = "সব তথ্য পূরণ করো।";
-    return;
-  }
-
-  if (password.length < 6) {
-    msg.textContent = "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।";
-    return;
-  }
-
-  msg.textContent = "অ্যাকাউন্ট তৈরি হচ্ছে...";
-
-  const { error } = await db.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: name,
-        referral_code: referralCode || null
-      }
-    }
-  });
-
-  if (error) {
-    msg.textContent = "সমস্যা: " + error.message;
-    return;
-  }
-
-  msg.textContent =
-    "রেজিস্ট্রেশন সফল হয়েছে। এখন লগইন করো।";
-
-  document.getElementById("resellerName").value = "";
-  document.getElementById("resellerEmail").value = "";
-  document.getElementById("resellerPassword").value = "";
-  document.getElementById("referralCode").value = "";
-}
-
-
-/* =====================================
-   RESELLER LOGIN
-===================================== */
-
-async function resellerLogin() {
-  const email =
-    document.getElementById("resellerLoginEmail").value.trim();
-
-  const password =
-    document.getElementById("resellerLoginPassword").value;
-
-  const msg = document.getElementById("resellerMsg");
-
-  if (!email || !password) {
-    msg.textContent = "ইমেইল ও পাসওয়ার্ড দাও।";
-    return;
-  }
-
-  msg.textContent = "Login হচ্ছে...";
-
-  const { data, error } = await db.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    msg.textContent = "Login সমস্যা: " + error.message;
-    return;
-  }
-
-  await verifyAdmin(data.user, "resellerMsg");
-}
-
-
-/* =====================================
-   RESELLER LOGOUT
-===================================== */
-
-async function resellerLogout() {
-  await db.auth.signOut();
-
-  currentResellerUser = null;
-  resellerSelectedProductId = null;
-
-  show("store");
-}
-/* =====================================
-   LOAD STORE PRODUCTS
-===================================== */
+/* =====================================================
+   5. STORE PRODUCTS
+===================================================== */
 
 async function loadStoreProducts() {
-  const list = document.getElementById("storeProducts");
+  const container = getElement("storeProducts");
+  if (!container) return;
 
-  if (!list) return;
-
-  list.textContent = "পণ্য লোড হচ্ছে...";
+  container.innerHTML = "পণ্য লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("products")
@@ -382,246 +198,547 @@ async function loadStoreProducts() {
     .order("id", { ascending: false });
 
   if (error) {
-    list.textContent = "পণ্য লোড সমস্যা: " + error.message;
+    container.innerHTML = "পণ্য লোড করা যায়নি।";
+    console.error(error);
     return;
   }
-
-  list.innerHTML = "";
 
   if (!data || data.length === 0) {
-    list.textContent = "এখনো কোনো পণ্য যোগ করা হয়নি।";
+    container.innerHTML = "এখনো কোনো পণ্য যোগ করা হয়নি।";
     return;
   }
 
-  data.forEach(p => {
-    const card = document.createElement("div");
-    card.className = "card";
+  container.innerHTML = data.map(product => `
+    <div class="product-card">
+      ${productImageHTML(product)}
 
-    // একাধিক পণ্যের ছবি দেখাবে
-    appendProductGallery(card, p);
+      <h3>${escapeHTML(product.name)}</h3>
 
-    const title = document.createElement("h3");
-    title.textContent = p.name;
-    card.appendChild(title);
+      <p>${escapeHTML(product.description || "")}</p>
 
-    const desc = document.createElement("p");
-    desc.textContent = p.description || "";
-    card.appendChild(desc);
+      <h3>${taka(product.price)}</h3>
 
-    const price = document.createElement("p");
-    price.className = "price";
-    price.textContent = "দাম: ৳" + p.price;
-    card.appendChild(price);
-
-    const btn = document.createElement("button");
-    btn.textContent = "অর্ডার করুন";
-    btn.onclick = () => openOrder(p.id, p.name, p.price);
-
-    card.appendChild(btn);
-    list.appendChild(card);
-  });
+      <button onclick="selectStoreProduct(${Number(product.id)})">
+        অর্ডার করুন
+      </button>
+    </div>
+  `).join("");
 }
 
+async function selectStoreProduct(productId) {
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .maybeSingle();
 
-/* =====================================
-   CUSTOMER ORDER FORM
-===================================== */
-
-function openOrder(id, name, price) {
-  selectedProductId = id;
-  selectedProductPrice = Number(price);
-
-  document.getElementById("selectedProduct").textContent =
-    name + " — ৳" + price;
-
-  document.getElementById("orderForm").style.display = "block";
-
-  document.getElementById("orderMsg").textContent = "";
-
-  document.getElementById("orderForm").scrollIntoView({
-    behavior: "smooth"
-  });
-}
-
-
-function closeOrder() {
-  document.getElementById("orderForm").style.display = "none";
-
-  selectedProductId = null;
-}
-
-
-/* =====================================
-   CUSTOMER PLACE ORDER
-===================================== */
-
-async function placeOrder() {
-  const name =
-    document.getElementById("customerName").value.trim();
-
-  const phone =
-    document.getElementById("customerPhone").value.trim();
-
-  const address =
-    document.getElementById("customerAddress").value.trim();
-
-  const quantity =
-    Number(document.getElementById("orderQuantity").value);
-
-  const msg = document.getElementById("orderMsg");
-
-  if (!selectedProductId) {
-    msg.textContent = "আগে একটি পণ্য নির্বাচন করো।";
+  if (error || !data) {
+    alert("পণ্য পাওয়া যায়নি।");
     return;
   }
+
+  selectedStoreProduct = data;
+
+  const selected = getElement("selectedProduct");
+
+  if (selected) {
+    selected.value = data.id;
+  }
+
+  const form = getElement("orderForm");
+
+  if (form) {
+    form.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+
+  showMessage(
+    "orderMsg",
+    "নির্বাচিত পণ্য: " + data.name
+  );
+}
+
+
+/* =====================================================
+   6. CUSTOMER ORDER
+===================================================== */
+
+async function placeOrder(event) {
+  if (event) event.preventDefault();
+
+  if (!selectedStoreProduct) {
+    const productId = Number(getValue("selectedProduct"));
+
+    if (!productId) {
+      showMessage("orderMsg", "আগে একটি পণ্য নির্বাচন করুন।", true);
+      return;
+    }
+
+    const { data } = await db
+      .from("products")
+      .select("*")
+      .eq("id", productId)
+      .maybeSingle();
+
+    selectedStoreProduct = data;
+  }
+
+  if (!selectedStoreProduct) {
+    showMessage("orderMsg", "পণ্য পাওয়া যায়নি।", true);
+    return;
+  }
+
+  const name = getValue("customerName");
+  const phone = getValue("customerPhone");
+  const address = getValue("customerAddress");
+  const quantity = Number(getValue("orderQuantity") || 1);
 
   if (!name || !phone || !address) {
-    msg.textContent = "সব তথ্য পূরণ করো।";
+    showMessage("orderMsg", "সব তথ্য পূরণ করুন।", true);
     return;
   }
 
   if (!Number.isInteger(quantity) || quantity < 1) {
-    msg.textContent = "সঠিক পরিমাণ লিখো।";
+    showMessage("orderMsg", "সঠিক পরিমাণ লিখুন।", true);
     return;
   }
 
-  msg.textContent = "অর্ডার জমা হচ্ছে...";
+  const { error } = await db
+    .from("orders")
+    .insert({
+      product_id: selectedStoreProduct.id,
+      customer_name: name,
+      phone: phone,
+      address: address,
+      quantity: quantity,
+      status: "pending"
+    });
 
-  const { error } = await db.from("orders").insert({
-    product_id: selectedProductId,
-    customer_name: name,
-    phone,
-    address,
-    quantity
+  if (error) {
+    console.error(error);
+    showMessage("orderMsg", "অর্ডার করা যায়নি। আবার চেষ্টা করুন।", true);
+    return;
+  }
+
+  showMessage("orderMsg", "আপনার অর্ডার সফলভাবে গ্রহণ করা হয়েছে।");
+
+  const form = getElement("orderForm");
+  if (form) form.reset();
+
+  selectedStoreProduct = null;
+}
+
+
+/* =====================================================
+   7. ADMIN LOGIN
+===================================================== */
+
+async function loginAdmin(event) {
+  if (event) event.preventDefault();
+
+  const email = getValue("email");
+  const password = getValue("password");
+
+  if (!email || !password) {
+    showMessage("loginMsg", "ইমেইল ও পাসওয়ার্ড দিন।", true);
+    return;
+  }
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email,
+    password
   });
 
   if (error) {
-    msg.textContent = "অর্ডার সমস্যা: " + error.message;
+    showMessage("loginMsg", error.message, true);
     return;
   }
 
-  msg.textContent = "অর্ডার সফলভাবে জমা হয়েছে।";
+  currentUser = data.user;
 
-  document.getElementById("customerName").value = "";
-  document.getElementById("customerPhone").value = "";
-  document.getElementById("customerAddress").value = "";
-  document.getElementById("orderQuantity").value = "1";
-
-  selectedProductId = null;
-
+  await verifyAdmin();
 }
 
-/* =====================================
-   ADMIN ADD PRODUCT
-   MULTIPLE IMAGE UPLOAD
-===================================== */
+async function adminLogin(event) {
+  return loginAdmin(event);
+}
 
-async function addProduct() {
-  const name =
-    document.getElementById("productName").value.trim();
 
-  const description =
-    document.getElementById("productDescription").value.trim();
+/* =====================================================
+   8. RESELLER REGISTRATION
+===================================================== */
 
-  const price =
-    Number(document.getElementById("productPrice").value);
+async function resellerRegister(event) {
+  if (event) event.preventDefault();
 
-  const input =
-    document.getElementById("productImageFile");
+  const name = getValue("resellerName");
+  const email = getValue("resellerEmail");
+  const password = getValue("resellerPassword");
+  const referralCode = getValue("referralCode").toUpperCase();
 
-  const files =
-    Array.from(input.files || []);
-
-  const msg =
-    document.getElementById("productMsg");
-
-  if (!name || !Number.isFinite(price) || price <= 0) {
-    msg.textContent = "পণ্যের নাম ও সঠিক দাম লিখুন।";
+  if (!name || !email || !password) {
+    showMessage("resellerMsg", "সব তথ্য পূরণ করুন।", true);
     return;
   }
 
-  if (files.length > 5) {
-    msg.textContent = "সর্বোচ্চ ৫টি ছবি নির্বাচন করতে পারবে।";
+  if (password.length < 6) {
+    showMessage("resellerMsg", "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।", true);
+    return;
+  }
+
+  const { data, error } = await db.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name,
+        role: "reseller",
+        referral_code: referralCode
+      }
+    }
+  });
+
+  if (error) {
+    showMessage("resellerMsg", error.message, true);
+    return;
+  }
+
+  if (referralCode) {
+    localStorage.setItem("pendingReferralCode", referralCode);
+  }
+
+  if (!data.session) {
+    showMessage(
+      "resellerMsg",
+      "রেজিস্ট্রেশন হয়েছে। ইমেইল ভেরিফিকেশন করে লগইন করুন।"
+    );
+    return;
+  }
+
+  currentUser = data.user;
+
+  await applyPendingReferralCode();
+  await verifyAdmin();
+}
+
+
+/* =====================================================
+   9. RESELLER LOGIN
+===================================================== */
+
+async function resellerLogin(event) {
+  if (event) event.preventDefault();
+
+  const email = getValue("resellerLoginEmail");
+  const password = getValue("resellerLoginPassword");
+
+  if (!email || !password) {
+    showMessage("resellerMsg", "ইমেইল ও পাসওয়ার্ড দিন।", true);
+    return;
+  }
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    showMessage("resellerMsg", error.message, true);
+    return;
+  }
+
+  currentUser = data.user;
+
+  await applyPendingReferralCode();
+  await verifyAdmin();
+}
+
+
+/* =====================================================
+   10. REFERRAL CODE APPLY
+===================================================== */
+
+async function applyPendingReferralCode() {
+  if (!currentUser) return;
+
+  const code = localStorage.getItem("pendingReferralCode");
+
+  if (!code) return;
+
+  const { data: myProfile, error: myError } = await db
+    .from("profiles")
+    .select("id,referred_by")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+
+  if (myError || !myProfile || myProfile.referred_by) {
+    localStorage.removeItem("pendingReferralCode");
+    return;
+  }
+
+  const { data: referrer, error: refError } = await db
+    .from("profiles")
+    .select("id")
+    .eq("referral_code", code)
+    .maybeSingle();
+
+  if (refError || !referrer || referrer.id === currentUser.id) {
+    localStorage.removeItem("pendingReferralCode");
+    return;
+  }
+
+  const { error: updateError } = await db
+    .from("profiles")
+    .update({
+      referred_by: referrer.id
+    })
+    .eq("id", currentUser.id);
+
+  if (!updateError) {
+    localStorage.removeItem("pendingReferralCode");
+  } else {
+    console.error("Referral update:", updateError);
+  }
+}
+
+
+/* =====================================================
+   11. VERIFY USER ROLE
+===================================================== */
+
+async function verifyAdmin() {
+  if (!currentUser) return;
+
+  const { data, error } = await db
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+
+  if (error || !data) {
+    alert("প্রোফাইল পাওয়া যায়নি।");
+    return;
+  }
+
+  currentProfile = data;
+
+  if (data.role === "admin") {
+    show("panel");
+    showPage("dashboard");
+    setText("adminName", data.full_name || "Admin");
+    return;
+  }
+
+  if (data.role === "reseller") {
+    show("resellerPanel");
+    setText("resellerWelcome", "স্বাগতম, " + (data.full_name || "Reseller"));
+
+    await loadResellerSummary();
+    await loadResellerProducts();
+    await loadResellerOrders();
+    await loadResellerWithdrawals();
+
+    return;
+  }
+
+  alert("এই অ্যাকাউন্টের অনুমতি নেই।");
+  await logout();
+}
+
+
+/* =====================================================
+   12. SESSION CHECK
+===================================================== */
+
+async function checkSession() {
+  const { data, error } = await db.auth.getSession();
+
+  if (error) {
+    console.error(error);
+    show("store");
+    return;
+  }
+
+  if (data.session) {
+    currentUser = data.session.user;
+    await verifyAdmin();
+  } else {
+    show("store");
+    await loadStoreProducts();
+  }
+}
+
+
+/* =====================================================
+   13. LOGOUT
+===================================================== */
+
+async function logout() {
+  await db.auth.signOut();
+
+  currentUser = null;
+  currentProfile = null;
+
+  show("store");
+  await loadStoreProducts();
+}
+
+
+/* =====================================================
+   14. ADMIN ADD PRODUCT
+===================================================== */
+
+async function addProduct(event) {
+  if (event) event.preventDefault();
+
+  const name = getValue("productName");
+  const description = getValue("productDescription");
+  const price = Number(getValue("productPrice"));
+
+  const fileInput = getElement("productImageFile");
+  const files = fileInput ? Array.from(fileInput.files || []) : [];
+
+  if (!name || !Number.isFinite(price) || price <= 0) {
+    showMessage("productMsg", "পণ্যের নাম ও সঠিক দাম দিন।", true);
+    return;
+  }
+
+  if (files.length > MAX_PRODUCT_IMAGES) {
+    showMessage("productMsg", "সর্বোচ্চ ৫টি ছবি দেওয়া যাবে।", true);
     return;
   }
 
   for (const file of files) {
     if (!file.type.startsWith("image/")) {
-      msg.textContent = "শুধু ছবির ফাইল নির্বাচন করো।";
+      showMessage("productMsg", "শুধু ছবির ফাইল আপলোড করুন।", true);
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      msg.textContent =
-        "প্রতিটি ছবির সাইজ সর্বোচ্চ ৫ MB হতে পারবে।";
+    if (file.size > MAX_IMAGE_SIZE) {
+      showMessage("productMsg", "প্রতিটি ছবির সাইজ সর্বোচ্চ ৫ MB হতে পারবে।", true);
       return;
     }
   }
 
+  showMessage("productMsg", "পণ্য যোগ করা হচ্ছে...");
+
   const imageUrls = [];
 
-  if (files.length > 0) {
-    msg.textContent = "ছবি আপলোড হচ্ছে...";
+  for (const file of files) {
+    const extension = file.name.split(".").pop().toLowerCase();
+    const safeExtension = /^[a-z0-9]+$/.test(extension) ? extension : "jpg";
 
-    for (const file of files) {
-      const extension =
-        file.name.split(".").pop().toLowerCase();
+    const fileName =
+      Date.now() + "_" +
+      Math.random().toString(36).slice(2) +
+      "." + safeExtension;
 
-      const fileName =
-        Date.now() + "-" +
-        Math.random().toString(36).slice(2) +
-        "." + extension;
+    const filePath = "products/" + fileName;
 
-      const { error: uploadError } = await db.storage
-        .from("product-images")
-        .upload(fileName, file);
+    const { error: uploadError } = await db.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false
+      });
 
-      if (uploadError) {
-        msg.textContent =
-          "ছবি আপলোড সমস্যা: " + uploadError.message;
-        return;
-      }
+    if (uploadError) {
+      console.error(uploadError);
+      showMessage("productMsg", "ছবি আপলোড হয়নি। Storage permission পরীক্ষা করুন।", true);
+      return;
+    }
 
-      const { data: publicData } = db.storage
-        .from("product-images")
-        .getPublicUrl(fileName);
+    const { data: publicData } = db.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(filePath);
 
+    if (publicData && publicData.publicUrl) {
       imageUrls.push(publicData.publicUrl);
     }
   }
 
-  msg.textContent = "পণ্য সংরক্ষণ হচ্ছে...";
-
-  const { error } = await db.from("products").insert({
-    name,
-    description,
-    price,
-    image_url: imageUrls[0] || null,
-    image_urls: imageUrls
-  });
+  const { error } = await db
+    .from("products")
+    .insert({
+      name,
+      description,
+      price,
+      image_url: imageUrls[0] || null,
+      image_urls: imageUrls
+    });
 
   if (error) {
-    msg.textContent =
-      "পণ্য যোগ সমস্যা: " + error.message;
+    console.error(error);
+    showMessage("productMsg", "পণ্য যোগ করা যায়নি।", true);
     return;
   }
 
-  msg.textContent = "পণ্য সফলভাবে যোগ হয়েছে।";
+  showMessage("productMsg", "পণ্য সফলভাবে যোগ হয়েছে!");
 
-  document.getElementById("productName").value = "";
-  document.getElementById("productDescription").value = "";
-  document.getElementById("productPrice").value = "";
-  input.value = "";
+  const nameInput = getElement("productName");
+  const descInput = getElement("productDescription");
+  const priceInput = getElement("productPrice");
+
+  if (nameInput) nameInput.value = "";
+  if (descInput) descInput.value = "";
+  if (priceInput) priceInput.value = "";
+  if (fileInput) fileInput.value = "";
 
   await loadProducts();
   await loadStoreProducts();
 }
-/* =====================================
-   DELETE PRODUCT
-===================================== */
+
+
+/* =====================================================
+   15. ADMIN PRODUCT LIST
+===================================================== */
+
+async function loadProducts() {
+  const container = getElement("productList");
+  if (!container) return;
+
+  container.innerHTML = "পণ্য লোড হচ্ছে...";
+
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .order("id", { ascending: false });
+
+  if (error) {
+    container.innerHTML = "পণ্য লোড করা যায়নি।";
+    console.error(error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = "কোনো পণ্য নেই।";
+    return;
+  }
+
+  container.innerHTML = data.map(product => `
+    <div class="admin-product-card">
+      ${productImageHTML(product)}
+
+      <h3>${escapeHTML(product.name)}</h3>
+      <p>${escapeHTML(product.description || "")}</p>
+      <strong>${taka(product.price)}</strong>
+
+      <button onclick="deleteProduct(${Number(product.id)})">
+        পণ্য মুছুন
+      </button>
+    </div>
+  `).join("");
+}
+
+
+/* =====================================================
+   16. DELETE PRODUCT
+===================================================== */
 
 async function deleteProduct(id) {
-  if (!confirm("পণ্যটি মুছে ফেলবে?")) return;
+  if (!confirm("আপনি কি এই পণ্যটি মুছে ফেলতে চান?")) return;
 
   const { error } = await db
     .from("products")
@@ -629,7 +746,8 @@ async function deleteProduct(id) {
     .eq("id", id);
 
   if (error) {
-    alert("সমস্যা: " + error.message);
+    alert("পণ্য মুছতে সমস্যা হয়েছে।");
+    console.error(error);
     return;
   }
 
@@ -640,663 +758,520 @@ async function deleteProduct(id) {
 }
 
 
-/* =====================================
-   ADMIN LOAD ORDERS
-===================================== */
+/* =====================================================
+   17. ADMIN ORDERS
+===================================================== */
 
 async function loadOrders() {
-  const list = document.getElementById("orderList");
+  const container = getElement("orderList");
+  if (!container) return;
 
-  if (!list) return;
-
-  list.textContent = "অর্ডার লোড হচ্ছে...";
+  container.innerHTML = "অর্ডার লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("orders")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("id", { ascending: false });
 
   if (error) {
-    list.textContent = "অর্ডার সমস্যা: " + error.message;
+    container.innerHTML = "অর্ডার লোড করা যায়নি।";
+    console.error(error);
     return;
   }
-
-  list.innerHTML = "";
 
   if (!data || data.length === 0) {
-    list.textContent = "এখনো কোনো অর্ডার নেই।";
+    container.innerHTML = "কোনো অর্ডার নেই।";
     return;
   }
 
-  data.forEach(o => {
-    const card = document.createElement("div");
-    card.className = "card";
+  container.innerHTML = data.map(order => `
+    <div class="order-card">
+      <h3>অর্ডার #${Number(order.id)}</h3>
 
-    const info = document.createElement("p");
+      <p>কাস্টমার: ${escapeHTML(order.customer_name)}</p>
+      <p>ফোন: ${escapeHTML(order.phone)}</p>
+      <p>ঠিকানা: ${escapeHTML(order.address)}</p>
+      <p>পণ্য ID: ${Number(order.product_id)}</p>
+      <p>পরিমাণ: ${Number(order.quantity)}</p>
+      <p>অবস্থা: ${escapeHTML(order.status)}</p>
 
-    info.textContent =
-      "অর্ডার ID: " + o.id +
-      "\nকাস্টমার: " + o.customer_name +
-      "\nমোবাইল: " + o.phone +
-      "\nঠিকানা: " + o.address +
-      "\nপণ্যের ID: " + o.product_id +
-      "\nপরিমাণ: " + o.quantity +
-      "\nরিসেলার ID: " + (o.reseller_id || "কাস্টমার অর্ডার") +
-      "\nঅবস্থা: " + o.status;
-
-    card.appendChild(info);
-
-    if (o.status !== "completed") {
-      const btn = document.createElement("button");
-
-      btn.textContent = "অর্ডার সম্পন্ন";
-      btn.onclick = () => completeOrder(o.id);
-
-      card.appendChild(btn);
-
-    } else {
-      const done = document.createElement("p");
-
-      done.className = "status";
-      done.textContent = "অর্ডার সম্পন্ন হয়েছে";
-
-      card.appendChild(done);
-    }
-
-    list.appendChild(card);
-  });
+      ${
+        order.status !== "completed"
+          ? `<button onclick="completeOrder(${Number(order.id)})">
+              সম্পন্ন করুন
+            </button>`
+          : `<span>সম্পন্ন হয়েছে</span>`
+      }
+    </div>
+  `).join("");
 }
 
 
-/* =====================================
-   COMPLETE ORDER
-===================================== */
+/* =====================================================
+   18. COMPLETE ORDER
+===================================================== */
 
 async function completeOrder(id) {
-  if (!confirm("এই অর্ডারটি সম্পন্ন করতে চাও?")) return;
+  if (!confirm("এই অর্ডারটি সম্পন্ন হয়েছে নিশ্চিত করছেন?")) return;
 
-  const { data, error } = await db
+  const { error } = await db
     .from("orders")
-    .update({ status: "completed" })
-    .eq("id", id)
-    .neq("status", "completed")
-    .select("id")
-    .maybeSingle();
+    .update({
+      status: "completed"
+    })
+    .eq("id", id);
 
   if (error) {
-    alert("অর্ডার আপডেট সমস্যা: " + error.message);
-    return;
-  }
-
-  if (!data) {
-    alert("অর্ডারটি আগে থেকেই সম্পন্ন হয়েছে।");
-    await loadOrders();
+    alert("অর্ডার আপডেট করা যায়নি।");
+    console.error(error);
     return;
   }
 
   alert("অর্ডার সম্পন্ন হয়েছে।");
 
   await loadOrders();
-           }
-/* =====================================
-   PART 7: RESELLER PRODUCTS & ORDER
-===================================== */
-
-
-/* LOAD RESELLER PRODUCTS */
-
-async function loadResellerProducts() {
-  const box = document.getElementById("resellerProducts");
-
-  if (!box) return;
-
-  box.textContent = "পণ্য লোড হচ্ছে...";
-
-  const { data, error } = await db
-    .from("products")
-    .select("id,name,description,price,image_url,image_urls")
-    .order("id", { ascending: false });
-
-  if (error) {
-    box.textContent = "পণ্য লোড করা যায়নি।";
-    console.error(error);
-    return;
-  }
-
-  box.innerHTML = "";
-
-  if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো পণ্য যোগ করা হয়নি।";
-    return;
-  }
-
-  data.forEach(p => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "12px";
-
-    appendProductGallery(card, p);
-
-    const name = document.createElement("h3");
-    name.textContent = p.name;
-
-    const description = document.createElement("p");
-    description.textContent = p.description || "";
-
-    const price = document.createElement("p");
-    price.textContent = "মূল্য: ৳" + p.price;
-
-    const btn = document.createElement("button");
-    btn.textContent = "এই পণ্য নির্বাচন করুন";
-
-    btn.onclick = () => {
-      resellerSelectedProductId = p.id;
-
-      box.querySelectorAll("button").forEach(b => {
-        b.style.outline = "none";
-      });
-
-      btn.style.outline = "2px solid green";
-
-      const msg = document.getElementById("resellerOrderMsg");
-
-      if (msg) {
-        msg.textContent = "নির্বাচিত পণ্য: " + p.name;
-      }
-    };
-
-    card.appendChild(name);
-    card.appendChild(description);
-    card.appendChild(price);
-    card.appendChild(btn);
-
-    box.appendChild(card);
-  });
+  await loadAdminReferralReport();
+  await loadAdminBonusReport();
 }
 
 
-/* PLACE RESELLER ORDER */
+/* =====================================================
+   19. RESELLER SUMMARY
+===================================================== */
 
-async function placeResellerOrder() {
-  if (!currentResellerUser) {
-    alert("আগে রিসেলার লগইন করো।");
-    return;
-  }
+async function loadResellerSummary() {
+  if (!currentUser) return;
 
-  if (!resellerSelectedProductId) {
-    alert("আগে একটি পণ্য নির্বাচন করো।");
-    return;
-  }
+  const { data, error } = await db
+    .from("profiles")
+    .select("full_name,commission_balance,referral_balance,bonus_balance,referral_code")
+    .eq("id", currentUser.id)
+    .maybeSingle();
 
-  const name = document.getElementById("resellerCustomerName")?.value.trim();
-  const phone = document.getElementById("resellerCustomerPhone")?.value.trim();
-  const address = document.getElementById("resellerCustomerAddress")?.value.trim();
-  const quantity = Number(
-    document.getElementById("resellerQuantity")?.value
-  );
-
-  if (!name || !phone || !address || !quantity || quantity < 1) {
-    alert("সব তথ্য সঠিকভাবে পূরণ করো।");
-    return;
-  }
-
-  const { data: product, error: productError } = await db
-    .from("products")
-    .select("id,name,price")
-    .eq("id", resellerSelectedProductId)
-    .single();
-
-  if (productError || !product) {
-    alert("পণ্যটি পাওয়া যায়নি। আবার নির্বাচন করো।");
-    return;
-  }
-
-  const total = Number(product.price) * quantity;
-
-  const { error } = await db
-    .from("orders")
-    .insert([{
-      product_id: product.id,
-      product_name: product.name,
-      price: product.price,
-      quantity: quantity,
-      total: total,
-      customer_name: name,
-      customer_phone: phone,
-      customer_address: address,
-      reseller_id: currentResellerUser.id,
-      status: "pending"
-    }]);
-
-  if (error) {
-    alert("অর্ডার করা যায়নি: " + error.message);
+  if (error || !data) {
     console.error(error);
     return;
   }
 
-  alert("রিসেলার অর্ডার সফলভাবে জমা হয়েছে।");
+  currentProfile = {
+    ...currentProfile,
+    ...data
+  };
 
-  document.getElementById("resellerCustomerName").value = "";
-  document.getElementById("resellerCustomerPhone").value = "";
-  document.getElementById("resellerCustomerAddress").value = "";
-  document.getElementById("resellerQuantity").value = 1;
+  const commission = Number(data.commission_balance || 0);
+  const referral = Number(data.referral_balance || 0);
+  const bonus = Number(data.bonus_balance || 0);
 
-  resellerSelectedProductId = null;
+  const total = commission + referral + bonus;
 
-  const msg = document.getElementById("resellerOrderMsg");
+  setText("resellerEarnings", taka(commission));
+  setText("referralEarnings", taka(referral));
+  setText("myReferralCode", data.referral_code || "তৈরি হয়নি");
+  setText("withdrawableBalance", taka(total));
 
-  if (msg) {
-    msg.textContent = "";
+  setText(
+    "resellerWelcome",
+    "স্বাগতম, " + (data.full_name || "Reseller")
+  );
+
+  await loadResellerBonusStatus();
+}
+
+
+/* =====================================================
+   20. RESELLER BONUS STATUS
+===================================================== */
+
+async function loadResellerBonusStatus() {
+  const targetElement = getElement("resellerTarget");
+  const statusElement = getElement("resellerBonusStatus");
+
+  const { data: settings } = await db
+    .from("bonus_settings")
+    .select("target_sales,bonus_amount")
+    .limit(1)
+    .maybeSingle();
+
+  if (settings) {
+    if (targetElement) {
+      targetElement.textContent = taka(settings.target_sales);
+    }
   }
 
-  await loadResellerOrders();
-  }
+  const { data, error } = await db.rpc("get_reseller_bonus_status");
 
-/* =====================================
-   PART 8: RESELLER ORDERS
-===================================== */
+  if (error) {
+    console.error("Bonus status:", error);
 
-async function loadResellerOrders() {
-  const box = document.getElementById("resellerOrders");
+    if (statusElement) {
+      statusElement.textContent = "বোনাসের তথ্য পাওয়া যায়নি।";
+    }
 
-  if (!box) return;
-
-  if (!currentResellerUser) {
-    box.textContent = "রিসেলার লগইন করা নেই।";
     return;
   }
 
-  box.textContent = "অর্ডার লোড হচ্ছে...";
+  let result = data;
+
+  if (Array.isArray(result)) {
+    result = result[0];
+  }
+
+  if (typeof result === "boolean") {
+    if (statusElement) {
+      statusElement.textContent = result
+        ? "বোনাস অর্জিত হয়েছে।"
+        : "বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
+    }
+    return;
+  }
+
+  if (result && typeof result === "object") {
+    const status =
+      result.status ??
+      result.eligible ??
+      result.bonus_eligible;
+
+    if (statusElement) {
+      statusElement.textContent =
+        status === true || status === "true" || status === "completed"
+          ? "বোনাস অর্জিত হয়েছে।"
+          : "বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
+    }
+
+    if (result.sales_total !== undefined) {
+      setText("resellerSales", taka(result.sales_total));
+    }
+
+    return;
+  }
+
+  if (statusElement) {
+    statusElement.textContent = "বোনাসের অবস্থা যাচাই করা হয়েছে।";
+  }
+}
+
+
+/* =====================================================
+   21. RESELLER PRODUCTS
+===================================================== */
+
+async function loadResellerProducts() {
+  const container = getElement("resellerProducts");
+  if (!container) return;
+
+  container.innerHTML = "পণ্য লোড হচ্ছে...";
+
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .order("id", { ascending: false });
+
+  if (error) {
+    container.innerHTML = "পণ্য লোড করা যায়নি।";
+    console.error(error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = "কোনো পণ্য নেই।";
+    return;
+  }
+
+  container.innerHTML = data.map(product => `
+    <div class="product-card">
+      ${productImageHTML(product)}
+
+      <h3>${escapeHTML(product.name)}</h3>
+      <p>${escapeHTML(product.description || "")}</p>
+      <h3>${taka(product.price)}</h3>
+
+      <button onclick="selectResellerProduct(${Number(product.id)})">
+        এই পণ্য নির্বাচন করুন
+      </button>
+    </div>
+  `).join("");
+}
+
+async function selectResellerProduct(id) {
+  const { data, error } = await db
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    alert("পণ্য পাওয়া যায়নি।");
+    return;
+  }
+
+  selectedResellerProduct = data;
+
+  showMessage(
+    "resellerOrderMsg",
+    "নির্বাচিত পণ্য: " + data.name
+  );
+
+  const form = getElement("resellerCustomerName");
+
+  if (form) {
+    form.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+}
+
+
+/* =====================================================
+   22. RESELLER PLACE ORDER
+===================================================== */
+
+async function placeResellerOrder(event) {
+  if (event) event.preventDefault();
+
+  if (!currentUser) {
+    showMessage("resellerOrderMsg", "আগে লগইন করুন।", true);
+    return;
+  }
+
+  if (!selectedResellerProduct) {
+    showMessage("resellerOrderMsg", "আগে পণ্য নির্বাচন করুন।", true);
+    return;
+  }
+
+  const name = getValue("resellerCustomerName");
+  const phone = getValue("resellerCustomerPhone");
+  const address = getValue("resellerCustomerAddress");
+  const quantity = Number(getValue("resellerQuantity") || 1);
+
+  if (!name || !phone || !address) {
+    showMessage("resellerOrderMsg", "সব তথ্য পূরণ করুন।", true);
+    return;
+  }
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    showMessage("resellerOrderMsg", "সঠিক পরিমাণ লিখুন।", true);
+    return;
+  }
+
+  const { error } = await db
+    .from("orders")
+    .insert({
+      product_id: selectedResellerProduct.id,
+      customer_name: name,
+      phone,
+      address,
+      quantity,
+      reseller_id: currentUser.id,
+      status: "pending"
+    });
+
+  if (error) {
+    console.error(error);
+    showMessage("resellerOrderMsg", "অর্ডার করা যায়নি।", true);
+    return;
+  }
+
+  showMessage("resellerOrderMsg", "রিসেলার অর্ডার সফল হয়েছে।");
+
+  [
+    "resellerCustomerName",
+    "resellerCustomerPhone",
+    "resellerCustomerAddress",
+    "resellerQuantity"
+  ].forEach(id => {
+    const element = getElement(id);
+    if (element) element.value = "";
+  });
+
+  selectedResellerProduct = null;
+
+  await loadResellerOrders();
+}
+
+
+/* =====================================================
+   23. RESELLER ORDER HISTORY
+===================================================== */
+
+async function loadResellerOrders() {
+  if (!currentUser) return;
+
+  const container = getElement("resellerOrderList");
+  if (!container) return;
+
+  container.innerHTML = "অর্ডার লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("orders")
     .select("*")
-    .eq("reseller_id", currentResellerUser.id)
+    .eq("reseller_id", currentUser.id)
     .order("id", { ascending: false });
 
   if (error) {
-    box.textContent = "অর্ডার লোড করা যায়নি।";
+    container.innerHTML = "অর্ডার লোড করা যায়নি।";
     console.error(error);
     return;
   }
-
-  box.innerHTML = "";
 
   if (!data || data.length === 0) {
-    box.textContent = "তুমি এখনো কোনো অর্ডার করোনি।";
+    container.innerHTML = "আপনার কোনো অর্ডার নেই।";
     return;
   }
 
-  data.forEach(order => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "10px";
-
-    const title = document.createElement("h3");
-    title.textContent = order.product_name || "পণ্য";
-
-    const customer = document.createElement("p");
-    customer.textContent =
-      "কাস্টমারের নাম: " + (order.customer_name || "");
-
-    const phone = document.createElement("p");
-    phone.textContent =
-      "মোবাইল: " + (order.customer_phone || "");
-
-    const quantity = document.createElement("p");
-    quantity.textContent =
-      "পরিমাণ: " + (order.quantity || 1);
-
-    const total = document.createElement("p");
-    total.textContent =
-      "মোট মূল্য: ৳" + (order.total || 0);
-
-    const status = document.createElement("p");
-    status.textContent =
-      "অর্ডারের অবস্থা: " + (order.status || "pending");
-
-    card.appendChild(title);
-    card.appendChild(customer);
-    card.appendChild(phone);
-    card.appendChild(quantity);
-    card.appendChild(total);
-    card.appendChild(status);
-
-    box.appendChild(card);
-  });
-  }
-/* =====================================
-   PART 9: RESELLER EARNINGS & BONUS
-===================================== */
-
-async function loadResellerSummary() {
-  if (!currentResellerUser) return;
-
-  const userId = currentResellerUser.id;
-
-  /* RESELLER COMMISSION */
-
-  const { data: profile, error: profileError } = await db
-    .from("profiles")
-    .select("commission_balance")
-    .eq("id", userId)
-    .single();
-
-  if (profileError) {
-    console.error("Profile error:", profileError);
-  }
-
-  const earningsBox = document.getElementById("resellerEarnings");
-
-  if (earningsBox) {
-    earningsBox.textContent =
-      "কমিশন আয়: ৳" +
-      Number(profile?.commission_balance || 0).toFixed(2);
-  }
-
-
-  /* CURRENT MONTH SALES */
-
-  const now = new Date();
-
-  const monthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  );
-
-  const { data: orders, error: ordersError } = await db
-    .from("orders")
-    .select("product_id,quantity,created_at,status")
-    .eq("reseller_id", userId)
-    .eq("status", "completed")
-    .gte("created_at", monthStart.toISOString());
-
-  if (ordersError) {
-    console.error("Monthly orders error:", ordersError);
-  }
-
-  let monthlySales = 0;
-
-  if (orders && orders.length > 0) {
-    const productIds = [
-      ...new Set(orders.map(o => o.product_id).filter(Boolean))
-    ];
-
-    const { data: products, error: productsError } = await db
-      .from("products")
-      .select("id,price")
-      .in("id", productIds);
-
-    if (productsError) {
-      console.error("Products error:", productsError);
-    }
-
-    const priceMap = {};
-
-    (products || []).forEach(p => {
-      priceMap[p.id] = Number(p.price || 0);
-    });
-
-    orders.forEach(order => {
-      monthlySales +=
-        (priceMap[order.product_id] || 0) *
-        Number(order.quantity || 1);
-    });
-  }
-
-  const salesBox = document.getElementById("resellerMonthlySales");
-
-  if (salesBox) {
-    salesBox.textContent =
-      "এই মাসের বিক্রি: ৳" + monthlySales.toFixed(2);
-  }
-
-
-  /* MONTHLY SALES TARGET */
-
-  const { data: targetData, error: targetError } = await db
-    .rpc("get_reseller_target");
-
-  if (targetError) {
-    console.error("Target error:", targetError);
-  }
-
-  let target = Number(targetData) || 100000;
-
-  if (typeof targetData === "object" && targetData !== null) {
-    target = Number(
-      targetData.target_sales ||
-      targetData.target ||
-      100000
-    );
-  }
-
-  const progress = target > 0
-    ? Math.min((monthlySales / target) * 100, 100)
-    : 0;
-
-  const targetBox = document.getElementById("resellerTarget");
-
-  if (targetBox) {
-    targetBox.textContent =
-      "মাসিক লক্ষ্য: ৳" + target.toFixed(2) +
-      " | অগ্রগতি: " + progress.toFixed(1) + "%";
-  }
-
-
-  /* MONTHLY BONUS STATUS */
-
-  const { data: bonusData, error: bonusError } = await db
-    .rpc("get_reseller_bonus_status");
-
-  if (bonusError) {
-    console.error("Bonus status error:", bonusError);
-  }
-
-  const bonusBox = document.getElementById("resellerBonusStatus");
-
-  if (bonusBox) {
-    let earned = false;
-
-    if (typeof bonusData === "boolean") {
-      earned = bonusData;
-    } else if (bonusData && typeof bonusData === "object") {
-      earned =
-        bonusData.bonus_eligible === true ||
-        bonusData.eligible === true ||
-        bonusData.earned === true;
-    }
-
-    bonusBox.textContent = earned
-      ? "অভিনন্দন! তুমি এই মাসের বোনাস অর্জন করেছ।"
-      : "এই মাসের বোনাস এখনো অর্জিত হয়নি।";
-  }
+  container.innerHTML = data.map(order => `
+    <div class="order-card">
+      <h3>অর্ডার #${Number(order.id)}</h3>
+      <p>কাস্টমার: ${escapeHTML(order.customer_name)}</p>
+      <p>ফোন: ${escapeHTML(order.phone)}</p>
+      <p>পণ্য ID: ${Number(order.product_id)}</p>
+      <p>পরিমাণ: ${Number(order.quantity)}</p>
+      <p>অবস্থা: ${escapeHTML(order.status)}</p>
+      <p>তারিখ: ${formatDate(order.created_at)}</p>
+    </div>
+  `).join("");
 }
 
-/* =====================================
-   PART 10: RESELLER REFERRAL LINK
-===================================== */
+
+/* =====================================================
+   24. REFERRAL LINK
+===================================================== */
 
 async function copyReferralLink() {
-  if (!currentResellerUser) {
-    alert("আগে রিসেলার লগইন করো।");
+  if (!currentProfile || !currentProfile.referral_code) {
+    showMessage("referralLinkMsg", "রেফারেল কোড পাওয়া যায়নি।", true);
     return;
   }
 
-  const { data: profile, error } = await db
-    .from("profiles")
-    .select("referral_code")
-    .eq("id", currentResellerUser.id)
-    .single();
-
-  if (error) {
-    alert("রেফারেল কোড পাওয়া যায়নি।");
-    console.error(error);
-    return;
-  }
-
-  if (!profile || !profile.referral_code) {
-    alert("তোমার রেফারেল কোড তৈরি করা হয়নি।");
-    return;
-  }
-
-  const referralLink =
+  const link =
     window.location.origin +
     window.location.pathname +
     "?ref=" +
-    encodeURIComponent(profile.referral_code);
+    encodeURIComponent(currentProfile.referral_code);
 
   try {
-    await navigator.clipboard.writeText(referralLink);
-    alert("তোমার রেফারেল লিংক কপি হয়েছে!");
-  } catch (err) {
-    const temp = document.createElement("textarea");
-    temp.value = referralLink;
-    document.body.appendChild(temp);
-    temp.select();
+    await navigator.clipboard.writeText(link);
+    showMessage("referralLinkMsg", "রেফারেল লিংক কপি হয়েছে!");
+  } catch (error) {
+    const input = document.createElement("textarea");
+    input.value = link;
+    document.body.appendChild(input);
+    input.select();
 
-    const copied = document.execCommand("copy");
-    temp.remove();
-
-    if (copied) {
-      alert("তোমার রেফারেল লিংক কপি হয়েছে!");
-    } else {
-      alert("লিংক কপি করা যায়নি: " + referralLink);
+    try {
+      document.execCommand("copy");
+      showMessage("referralLinkMsg", "রেফারেল লিংক কপি হয়েছে!");
+    } catch {
+      showMessage("referralLinkMsg", link);
     }
+
+    input.remove();
   }
 }
-/* =====================================
-   PART 11: RESELLER WITHDRAWAL
-===================================== */
 
-async function requestWithdrawal() {
-  if (!currentResellerUser) {
-    alert("আগে রিসেলার লগইন করো।");
+
+/* =====================================================
+   25. RESLLER WITHDRAWAL REQUEST
+===================================================== */
+
+async function requestWithdrawal(event) {
+  if (event) event.preventDefault();
+
+  const amount = Number(getValue("withdrawAmount"));
+  const method = getValue("withdrawMethod").toLowerCase();
+  const number = getValue("withdrawNumber");
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showMessage("withdrawMsg", "সঠিক টাকার পরিমাণ দিন।", true);
     return;
   }
 
-  const amount = Number(
-    document.getElementById("withdrawAmount")?.value
-  );
-
-  const method =
-    document.getElementById("withdrawMethod")?.value;
-
-  const phone =
-    document.getElementById("withdrawPhone")?.value.trim();
-
-  if (!amount || amount <= 0) {
-    alert("সঠিক টাকার পরিমাণ লিখো।");
+  if (!["bkash", "nagad"].includes(method)) {
+    showMessage("withdrawMsg", "bKash অথবা Nagad নির্বাচন করুন।", true);
     return;
   }
 
-  if (!method || !["bKash", "Nagad"].includes(method)) {
-    alert("বিকাশ অথবা নগদ নির্বাচন করো।");
+  if (!number) {
+    showMessage("withdrawMsg", "মোবাইল নম্বর দিন।", true);
     return;
   }
 
-  if (!/^01[3-9]\d{8}$/.test(phone)) {
-    alert("সঠিক ১১ সংখ্যার মোবাইল নম্বর লিখো।");
-    return;
-  }
-
-  const { data, error } = await db.rpc("request_withdrawal", {
+  const { error } = await db.rpc("request_withdrawal", {
     p_amount: amount,
     p_payment_method: method,
-    p_mobile_number: phone
+    p_payment_number: number
   });
 
   if (error) {
-    alert("আবেদন করা যায়নি: " + error.message);
     console.error(error);
+    showMessage("withdrawMsg", error.message, true);
     return;
   }
 
-  alert("টাকা উত্তোলনের আবেদন সফলভাবে জমা হয়েছে।");
+  showMessage("withdrawMsg", "উত্তোলনের আবেদন জমা হয়েছে।");
 
-  document.getElementById("withdrawAmount").value = "";
-  document.getElementById("withdrawPhone").value = "";
+  const amountInput = getElement("withdrawAmount");
+  const numberInput = getElement("withdrawNumber");
 
+  if (amountInput) amountInput.value = "";
+  if (numberInput) numberInput.value = "";
+
+  await loadResellerSummary();
   await loadResellerWithdrawals();
 }
 
 
-/* LOAD RESELLER WITHDRAWAL HISTORY */
+/* =====================================================
+   26. RESELLER WITHDRAWAL HISTORY
+===================================================== */
 
 async function loadResellerWithdrawals() {
-  const box = document.getElementById("resellerWithdrawals");
+  if (!currentUser) return;
 
-  if (!box || !currentResellerUser) return;
+  const container = getElement("resellerWithdrawalList");
+  if (!container) return;
 
-  box.textContent = "আবেদনের তালিকা লোড হচ্ছে...";
+  container.innerHTML = "আবেদন লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("withdrawal_requests")
     .select("*")
-    .eq("reseller_id", currentResellerUser.id)
+    .eq("reseller_id", currentUser.id)
     .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "আবেদনের তালিকা লোড করা যায়নি।";
+    container.innerHTML = "আবেদন লোড করা যায়নি।";
     console.error(error);
     return;
   }
 
-  box.innerHTML = "";
-
   if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো টাকা উত্তোলনের আবেদন নেই।";
+    container.innerHTML = "কোনো উত্তোলনের আবেদন নেই।";
     return;
   }
 
-  data.forEach(item => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "10px";
-
-    const amount = document.createElement("p");
-    amount.textContent = "টাকার পরিমাণ: ৳" + item.amount;
-
-    const method = document.createElement("p");
-    method.textContent = "পেমেন্ট মাধ্যম: " + item.payment_method;
-
-    const phone = document.createElement("p");
-    phone.textContent = "মোবাইল নম্বর: " + item.mobile_number;
-
-    const status = document.createElement("p");
-    status.textContent = "অবস্থা: " + item.status;
-
-    card.appendChild(amount);
-    card.appendChild(method);
-    card.appendChild(phone);
-    card.appendChild(status);
-
-    box.appendChild(card);
-  });
+  container.innerHTML = data.map(item => `
+    <div class="withdrawal-card">
+      <h3>আবেদন ID: ${Number(item.id)}</h3>
+      <p>টাকার পরিমাণ: ${taka(item.amount)}</p>
+      <p>মাধ্যম: ${escapeHTML(item.payment_method)}</p>
+      <p>মোবাইল নম্বর: ${escapeHTML(item.payment_number)}</p>
+      <p>অবস্থা: ${escapeHTML(item.status)}</p>
+      <p>তারিখ: ${formatDate(item.created_at)}</p>
+    </div>
+  `).join("");
 }
-/* =====================================
-   PART 12: ADMIN WITHDRAWAL MANAGEMENT
-===================================== */
 
 
-/* LOAD ALL WITHDRAWAL REQUESTS */
+/* =====================================================
+   27. ADMIN WITHDRAWAL LIST
+===================================================== */
 
 async function loadAdminWithdrawals() {
-  const box = document.getElementById("adminWithdrawals");
+  const container = getElement("adminWithdrawalList");
+  if (!container) return;
 
-  if (!box) return;
-
-  box.textContent = "আবেদন লোড হচ্ছে...";
+  container.innerHTML = "আবেদন লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("withdrawal_requests")
@@ -1304,152 +1279,86 @@ async function loadAdminWithdrawals() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "আবেদন লোড করা যায়নি।";
+    container.innerHTML = "আবেদন লোড করা যায়নি।";
     console.error(error);
     return;
   }
 
-  box.innerHTML = "";
-
   if (!data || data.length === 0) {
-    box.textContent = "কোনো টাকা উত্তোলনের আবেদন নেই।";
+    container.innerHTML = "কোনো আবেদন নেই।";
     return;
   }
 
-  const resellerIds = [
-    ...new Set(data.map(item => item.reseller_id).filter(Boolean))
-  ];
+  container.innerHTML = data.map(item => `
+    <div class="withdrawal-card">
+      <h3>আবেদন ID: ${Number(item.id)}</h3>
 
-  const { data: profiles, error: profileError } = await db
-    .from("profiles")
-    .select("id,full_name")
-    .in("id", resellerIds);
+      <p>রিসেলার ID: ${escapeHTML(item.reseller_id)}</p>
+      <p>টাকার পরিমাণ: ${taka(item.amount)}</p>
+      <p>পেমেন্ট মাধ্যম: ${escapeHTML(item.payment_method)}</p>
+      <p>মোবাইল নম্বর: ${escapeHTML(item.payment_number)}</p>
+      <p>তারিখ: ${formatDate(item.created_at)}</p>
+      <p>অবস্থা: ${escapeHTML(item.status)}</p>
 
-  if (profileError) {
-    console.error(profileError);
-  }
+      ${
+        item.status === "pending"
+          ? `
+            <button onclick="processWithdrawal(${Number(item.id)}, 'paid')">
+              টাকা পাঠানো হয়েছে
+            </button>
 
-  const nameMap = {};
-
-  (profiles || []).forEach(profile => {
-    nameMap[profile.id] = profile.full_name || "রিসেলার";
-  });
-
-  data.forEach(item => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "12px";
-
-    const reseller = document.createElement("p");
-    reseller.textContent =
-      "রিসেলার: " + (nameMap[item.reseller_id] || "অজানা");
-
-    const amount = document.createElement("p");
-    amount.textContent = "টাকার পরিমাণ: ৳" + item.amount;
-
-    const method = document.createElement("p");
-    method.textContent = "পেমেন্ট মাধ্যম: " + item.payment_method;
-
-    const phone = document.createElement("p");
-    phone.textContent = "মোবাইল নম্বর: " + item.mobile_number;
-
-    const status = document.createElement("p");
-    status.textContent = "অবস্থা: " + item.status;
-
-    const date = document.createElement("p");
-    date.textContent = item.created_at
-      ? "আবেদনের তারিখ: " + new Date(item.created_at).toLocaleString("bn-BD")
-      : "";
-
-    card.appendChild(reseller);
-    card.appendChild(amount);
-    card.appendChild(method);
-    card.appendChild(phone);
-    card.appendChild(status);
-    card.appendChild(date);
-
-    if (item.status === "pending") {
-      const paidBtn = document.createElement("button");
-      paidBtn.textContent = "টাকা পাঠানো হয়েছে — Paid";
-      paidBtn.style.marginRight = "8px";
-
-      paidBtn.onclick = () => {
-        const confirmed = confirm(
-          "তুমি কি সত্যিই এই রিসেলারকে ৳" +
-          item.amount +
-          " পাঠিয়েছ?"
-        );
-
-        if (confirmed) {
-          processWithdrawal(item.id, "paid");
-        }
-      };
-
-      const rejectBtn = document.createElement("button");
-      rejectBtn.textContent = "Reject";
-
-      rejectBtn.onclick = () => {
-        const confirmed = confirm(
-          "তুমি কি এই আবেদনটি Reject করতে চাও?"
-        );
-
-        if (confirmed) {
-          processWithdrawal(item.id, "rejected");
-        }
-      };
-
-      card.appendChild(paidBtn);
-      card.appendChild(rejectBtn);
-    }
-
-    box.appendChild(card);
-  });
+            <button onclick="processWithdrawal(${Number(item.id)}, 'rejected')">
+              আবেদন বাতিল
+            </button>
+          `
+          : ""
+      }
+    </div>
+  `).join("");
 }
 
 
-/* PROCESS WITHDRAWAL */
+/* =====================================================
+   28. ADMIN PROCESS WITHDRAWAL
+===================================================== */
 
-async function processWithdrawal(id, status) {
-  if (!["paid", "rejected"].includes(status)) {
-    alert("ভুল আবেদন অবস্থা।");
-    return;
+async function processWithdrawal(id, action) {
+  if (!["paid", "rejected"].includes(action)) return;
+
+  const message = action === "paid"
+    ? "আপনি কি সত্যিই রিসেলারকে টাকা পাঠিয়েছেন?"
+    : "আপনি কি এই আবেদন বাতিল করতে চান?";
+
+  if (!confirm(message)) return;
+
+  if (action === "paid") {
+    alert(
+      "সতর্কতা: bKash/Nagad-এ বাস্তবে টাকা পাঠানোর পরেই এই অপশন নিশ্চিত করবেন।"
+    );
   }
 
   const { error } = await db.rpc("admin_process_withdrawal", {
     p_request_id: id,
-    p_status: status
+    p_action: action
   });
 
   if (error) {
-    alert("আবেদন আপডেট করা যায়নি: " + error.message);
     console.error(error);
+    showMessage("adminWithdrawalMsg", error.message, true);
     return;
   }
 
-  alert(
-    status === "paid"
-      ? "আবেদন Paid হয়েছে।"
-      : "আবেদন Reject হয়েছে।"
-  );
+  showMessage("adminWithdrawalMsg", "আবেদনের অবস্থা আপডেট হয়েছে।");
 
   await loadAdminWithdrawals();
-    }
-/* =====================================
-   PART 13: ADMIN BONUS SETTINGS
-===================================== */
+}
 
 
-/* LOAD BONUS SETTINGS */
+/* =====================================================
+   29. BONUS SETTINGS
+===================================================== */
 
 async function loadBonusSettings() {
-  const targetInput = document.getElementById("bonusTarget");
-  const amountInput = document.getElementById("bonusAmount");
-
-  if (!targetInput || !amountInput) return;
-
   const { data, error } = await db
     .from("bonus_settings")
     .select("*")
@@ -1457,42 +1366,49 @@ async function loadBonusSettings() {
     .maybeSingle();
 
   if (error) {
-    console.error("Bonus settings error:", error);
+    console.error(error);
     return;
   }
 
-  if (data) {
-    targetInput.value = data.target_sales || 100000;
-    amountInput.value = data.bonus_amount || 0;
-  }
+  if (!data) return;
+
+  const target = getElement("bonusTarget");
+  const amount = getElement("bonusAmount");
+
+  if (target) target.value = data.target_sales;
+  if (amount) amount.value = data.bonus_amount;
 }
 
 
-/* SAVE BONUS SETTINGS */
+/* =====================================================
+   30. SAVE BONUS SETTINGS
+===================================================== */
 
-async function saveBonusSettings() {
-  const target = Number(
-    document.getElementById("bonusTarget")?.value
-  );
+async function saveBonusSettings(event) {
+  if (event) event.preventDefault();
 
-  const amount = Number(
-    document.getElementById("bonusAmount")?.value
-  );
+  const targetSales = Number(getValue("bonusTarget"));
+  const bonusAmount = Number(getValue("bonusAmount"));
 
-  if (!target || target <= 0 || !amount || amount <= 0) {
-    alert("সঠিক বিক্রির লক্ষ্য ও বোনাসের পরিমাণ লিখো।");
+  if (
+    !Number.isFinite(targetSales) ||
+    targetSales <= 0 ||
+    !Number.isFinite(bonusAmount) ||
+    bonusAmount < 0
+  ) {
+    showMessage("bonusMsg", "সঠিক বোনাসের তথ্য দিন।", true);
     return;
   }
 
-  const { data: existing, error: readError } = await db
+  const { data: existing, error: findError } = await db
     .from("bonus_settings")
     .select("id")
     .limit(1)
     .maybeSingle();
 
-  if (readError) {
-    alert("বোনাস সেটিংস পড়া যায়নি।");
-    console.error(readError);
+  if (findError) {
+    showMessage("bonusMsg", "সেটিংস যাচাই করা যায়নি।", true);
+    console.error(findError);
     return;
   }
 
@@ -1502,144 +1418,76 @@ async function saveBonusSettings() {
     result = await db
       .from("bonus_settings")
       .update({
-        target_sales: target,
-        bonus_amount: amount
+        target_sales: targetSales,
+        bonus_amount: bonusAmount,
+        updated_at: new Date().toISOString()
       })
       .eq("id", existing.id);
   } else {
     result = await db
       .from("bonus_settings")
-      .insert([{
-        target_sales: target,
-        bonus_amount: amount
-      }]);
+      .insert({
+        target_sales: targetSales,
+        bonus_amount: bonusAmount
+      });
   }
 
   if (result.error) {
-    alert("সেটিংস সংরক্ষণ করা যায়নি: " + result.error.message);
     console.error(result.error);
+    showMessage("bonusMsg", result.error.message, true);
     return;
   }
 
-  alert("বোনাস সেটিংস সংরক্ষণ হয়েছে।");
+  showMessage("bonusMsg", "বোনাস সেটিংস সংরক্ষণ হয়েছে।");
 }
 
 
-/* LOAD ADMIN BONUS REPORT */
+/* =====================================================
+   31. ADMIN BONUS REPORT
+===================================================== */
 
 async function loadAdminBonusReport() {
-  const box = document.getElementById("adminBonusReport");
+  const container = getElement("adminBonusReport");
+  if (!container) return;
 
-  if (!box) return;
-
-  box.textContent = "বোনাস রিপোর্ট লোড হচ্ছে...";
+  container.innerHTML = "বোনাস রিপোর্ট লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("reseller_monthly_bonus")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("*");
 
   if (error) {
-    box.textContent = "বোনাস রিপোর্ট লোড করা যায়নি।";
+    container.innerHTML = "বোনাস রিপোর্ট পাওয়া যায়নি।";
     console.error(error);
     return;
   }
 
-  box.innerHTML = "";
-
   if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো মাসিক বোনাসের তথ্য নেই।";
+    container.innerHTML = "এখনো কোনো বোনাস রিপোর্ট নেই।";
     return;
   }
 
-  const resellerIds = [
-    ...new Set(data.map(item => item.reseller_id).filter(Boolean))
-  ];
+  container.innerHTML = data.map(item => `
+    <div class="report-card">
+      <p>রিসেলার ID: ${escapeHTML(item.reseller_id || "-")}</p>
+      <p>মোট বিক্রয়: ${taka(item.sales_total)}</p>
+      <p>লক্ষ্যমাত্রা: ${taka(item.target_sales)}</p>
+      <p>বোনাস: ${taka(item.bonus_amount)}</p>
+      <p>তারিখ: ${formatDate(item.created_at)}</p>
+    </div>
+  `).join("");
+}
 
-  const { data: profiles, error: profileError } = await db
-    .from("profiles")
-    .select("id,full_name")
-    .in("id", resellerIds);
 
-  if (profileError) {
-    console.error(profileError);
-  }
-
-  const nameMap = {};
-
-  (profiles || []).forEach(profile => {
-    nameMap[profile.id] = profile.full_name || "রিসেলার";
-  });
-
-  data.forEach(item => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "10px";
-
-    const name = document.createElement("p");
-    name.textContent =
-      "রিসেলার: " + (nameMap[item.reseller_id] || "অজানা");
-
-    const amount = document.createElement("p");
-    amount.textContent =
-      "বোনাস: ৳" + (item.bonus_amount || 0);
-
-    const status = document.createElement("p");
-    status.textContent =
-      "অবস্থা: " + (item.status || "তথ্য নেই");
-
-    const date = document.createElement("p");
-    date.textContent = item.created_at
-      ? "তারিখ: " + new Date(item.created_at).toLocaleString("bn-BD")
-      : "";
-
-    card.appendChild(name);
-    card.appendChild(amount);
-    card.appendChild(status);
-    card.appendChild(date);
-
-    box.appendChild(card);
-  });
-  }
-
-/* =====================================
-   PART 14: ADMIN REFERRAL REPORT
-===================================== */
+/* =====================================================
+   32. ADMIN REFERRAL REPORT
+===================================================== */
 
 async function loadAdminReferralReport() {
-  const box = document.getElementById("adminReferralReport");
+  const container = getElement("adminReferralReport");
+  if (!container) return;
 
-  if (!box) return;
-
-  box.textContent = "রেফারেল রিপোর্ট লোড হচ্ছে...";
-
-  /* VERIFY ADMIN */
-
-  const {
-    data: { user },
-    error: authError
-  } = await db.auth.getUser();
-
-  if (authError || !user) {
-    box.textContent = "Admin লগইন করা নেই।";
-    return;
-  }
-
-  const { data: adminProfile, error: adminError } = await db
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (adminError || adminProfile?.role !== "admin") {
-    box.textContent = "শুধু Admin এই রিপোর্ট দেখতে পারবেন।";
-    return;
-  }
-
-  /* LOAD REFERRAL REWARDS */
+  container.innerHTML = "রেফারেল রিপোর্ট লোড হচ্ছে...";
 
   const { data, error } = await db
     .from("referral_rewards")
@@ -1647,239 +1495,76 @@ async function loadAdminReferralReport() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    box.textContent = "রেফারেল রিপোর্ট লোড করা যায়নি।";
+    container.innerHTML = "রেফারেল রিপোর্ট পাওয়া যায়নি।";
     console.error(error);
     return;
   }
 
-  box.innerHTML = "";
-
   if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো রেফারেল পুরস্কারের তথ্য নেই।";
+    container.innerHTML = "এখনো কোনো রেফারেল রিওয়ার্ড নেই।";
     return;
   }
 
-  /* GET RESELLER NAMES */
-
-  const resellerIds = [
-    ...new Set(
-      data.flatMap(item => [
-        item.referrer_id,
-        item.referred_reseller_id
-      ]).filter(Boolean)
-    )
-  ];
-
-  const { data: profiles, error: profileError } = await db
-    .from("profiles")
-    .select("id,full_name")
-    .in("id", resellerIds);
-
-  if (profileError) {
-    console.error(profileError);
-  }
-
-  const nameMap = {};
-
-  (profiles || []).forEach(profile => {
-    nameMap[profile.id] = profile.full_name || "রিসেলার";
-  });
-
-  /* DISPLAY REPORT */
-
-  let totalReward = 0;
-
-  data.forEach(item => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "10px";
-
-    const referrer = document.createElement("p");
-    referrer.textContent =
-      "যিনি রেফার করেছেন: " +
-      (nameMap[item.referrer_id] || "অজানা");
-
-    const referred = document.createElement("p");
-    referred.textContent =
-      "যিনি রেজিস্ট্রেশন করেছেন: " +
-      (nameMap[item.referred_reseller_id] || "অজানা");
-
-    const amount = document.createElement("p");
-    amount.textContent =
-      "রেফারেল পুরস্কার: ৳" + (item.amount || 0);
-
-    const order = document.createElement("p");
-    order.textContent =
-      "অর্ডার ID: " + (item.order_id || "তথ্য নেই");
-
-    const date = document.createElement("p");
-    date.textContent = item.created_at
-      ? "তারিখ: " + new Date(item.created_at).toLocaleString("bn-BD")
-      : "";
-
-    totalReward += Number(item.amount || 0);
-
-    card.appendChild(referrer);
-    card.appendChild(referred);
-    card.appendChild(amount);
-    card.appendChild(order);
-    card.appendChild(date);
-
-    box.appendChild(card);
-  });
-
-  const total = document.createElement("h3");
-  total.textContent =
-    "মোট রেফারেল পুরস্কার: ৳" + totalReward.toFixed(2);
-
-  box.prepend(total);
-}
-/* =====================================
-   PART 15: ADMIN PRODUCT LIST
-===================================== */
-
-async function loadProducts() {
-  const box = document.getElementById("adminProducts");
-
-  if (!box) return;
-
-  box.textContent = "পণ্য লোড হচ্ছে...";
-
-  const { data, error } = await db
-    .from("products")
-    .select("id,name,description,price,image_url,image_urls")
-    .order("id", { ascending: false });
-
-  if (error) {
-    box.textContent = "পণ্য লোড করা যায়নি।";
-    console.error(error);
-    return;
-  }
-
-  box.innerHTML = "";
-
-  if (!data || data.length === 0) {
-    box.textContent = "এখনো কোনো পণ্য যোগ করা হয়নি।";
-    return;
-  }
-
-  data.forEach(product => {
-    const card = document.createElement("div");
-
-    card.style.border = "1px solid #ddd";
-    card.style.borderRadius = "10px";
-    card.style.padding = "12px";
-    card.style.marginBottom = "12px";
-
-    /* PRODUCT IMAGE GALLERY */
-
-    appendProductGallery(card, product);
-
-    /* PRODUCT NAME */
-
-    const name = document.createElement("h3");
-    name.textContent = product.name;
-
-    /* PRODUCT DESCRIPTION */
-
-    const description = document.createElement("p");
-    description.textContent = product.description || "";
-
-    /* PRODUCT PRICE */
-
-    const price = document.createElement("p");
-    price.textContent =
-      "পণ্যের দাম: ৳" + product.price;
-
-    /* DELETE BUTTON */
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "পণ্য ডিলিট করুন";
-
-    deleteBtn.style.background = "#dc3545";
-    deleteBtn.style.color = "white";
-    deleteBtn.style.border = "none";
-    deleteBtn.style.padding = "9px 14px";
-    deleteBtn.style.borderRadius = "6px";
-
-    deleteBtn.onclick = () => {
-      deleteProduct(product.id);
-    };
-
-    card.appendChild(name);
-    card.appendChild(description);
-    card.appendChild(price);
-    card.appendChild(deleteBtn);
-
-    box.appendChild(card);
-  });
-}
-/* =====================================
-   PART 16: SESSION & APP STARTUP
-===================================== */
-
-
-/* GET REFERRAL CODE FROM URL */
-
-const urlParams = new URLSearchParams(window.location.search);
-
-const referralCodeFromURL = urlParams.get("ref");
-
-if (referralCodeFromURL) {
-  const referralInput = document.getElementById("referralCode");
-
-  if (referralInput) {
-    referralInput.value = referralCodeFromURL;
-  }
-
-  localStorage.setItem("pendingReferralCode", referralCodeFromURL);
+  container.innerHTML = data.map(item => `
+    <div class="report-card">
+      <p>অর্ডার ID: ${Number(item.order_id)}</p>
+      <p>রেফারার ID: ${escapeHTML(item.referrer_id)}</p>
+      <p>নতুন রিসেলার ID: ${escapeHTML(item.referred_reseller_id)}</p>
+      <p>রিওয়ার্ড: ${taka(item.reward_amount)}</p>
+      <p>তারিখ: ${formatDate(item.created_at)}</p>
+    </div>
+  `).join("");
 }
 
 
-/* CHECK LOGIN SESSION */
+/* =====================================================
+   33. REFERRAL URL DETECTION
+===================================================== */
 
-async function checkSession() {
-  const {
-    data: { session },
-    error
-  } = await db.auth.getSession();
+function detectReferralCode() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("ref");
 
-  if (error) {
-    console.error("Session error:", error);
-    return;
+  if (code) {
+    const input = getElement("referralCode");
+
+    if (input) {
+      input.value = code.toUpperCase();
+    }
+
+    localStorage.setItem(
+      "pendingReferralCode",
+      code.toUpperCase()
+    );
   }
-
-  if (!session) {
-    show("loginPage");
-    return;
-  }
-
-  await verifyAdmin(
-    session.user,
-    "loginMsg"
-  );
 }
 
 
-/* AUTH STATE CHANGE */
+/* =====================================================
+   34. AUTH STATE LISTENER
+===================================================== */
 
 db.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT") {
-    currentResellerUser = null;
-    show("loginPage");
+    currentUser = null;
+    currentProfile = null;
+    show("store");
   }
 });
 
 
-/* APP START */
+/* =====================================================
+   35. INITIAL APP START
+===================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
+  detectReferralCode();
+
   await loadStoreProducts();
   await checkSession();
 });
 
 
-
+/* =====================================================
+   END OF DX TRUST MEDIA LIFESTYLE COX
+===================================================== */
