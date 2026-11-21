@@ -28,21 +28,16 @@
       <p>পছন্দের পণ্য অর্ডার করুন</p>
     </div>
 
-    <div id="storeProducts">
-      পণ্য লোড হচ্ছে...
-    </div>
+    <div id="storeProducts">পণ্য লোড হচ্ছে...</div>
 
     <div id="orderForm" class="card" style="display:none">
-
       <h3>অর্ডার করুন</h3>
-
       <p id="selectedProduct"></p>
 
       <input id="customerName" placeholder="আপনার নাম">
       <input id="customerPhone" type="tel" placeholder="মোবাইল নম্বর">
 
-      <textarea id="customerAddress"
-        placeholder="সম্পূর্ণ ঠিকানা"></textarea>
+      <textarea id="customerAddress" placeholder="সম্পূর্ণ ঠিকানা"></textarea>
 
       <input id="orderQuantity" type="number" min="1" value="1">
 
@@ -50,7 +45,6 @@
       <button onclick="closeOrder()">বাতিল</button>
 
       <p id="orderMsg" class="message"></p>
-
     </div>
 
     <button onclick="openLogin()">Admin Login</button>
@@ -60,7 +54,6 @@
     </button>
 
   </section>
-
 
   <!-- ADMIN LOGIN -->
   <section id="login">
@@ -82,14 +75,12 @@
 
   </section>
 
-
   <!-- RESELLER AUTH -->
   <section id="resellerAuth">
 
     <h3>DX TRUST Reseller</h3>
 
     <div class="card">
-
       <h3>নতুন রিসেলার অ্যাকাউন্ট</h3>
 
       <input id="resellerName" placeholder="আপনার নাম">
@@ -98,18 +89,15 @@
       <input id="referralCode" placeholder="রেফারেল কোড (ঐচ্ছিক)">
 
       <button onclick="resellerRegister()">Registration</button>
-
     </div>
 
     <div class="card">
-
       <h3>রিসেলার লগইন</h3>
 
       <input id="resellerLoginEmail" type="email" placeholder="ইমেইল">
       <input id="resellerLoginPassword" type="password" placeholder="পাসওয়ার্ড">
 
       <button onclick="resellerLogin()">Login</button>
-
     </div>
 
     <p id="resellerMsg" class="message"></p>
@@ -117,7 +105,6 @@
     <button onclick="show('store')">দোকানে ফিরে যান</button>
 
   </section>
-
 
   <!-- RESELLER DASHBOARD -->
   <section id="resellerPanel">
@@ -148,14 +135,11 @@
 
       <p id="resellerSales">মাসিক বিক্রি: ৳0</p>
 
-      <p id="resellerBonusStatus">
-        বোনাসের অবস্থা লোড হচ্ছে...
-      </p>
+      <p id="resellerBonusStatus">বোনাসের অবস্থা লোড হচ্ছে...</p>
 
       <p id="resellerTarget">লক্ষ্য: ৳100000</p>
 
     </div>
-
 
     <!-- RESELLER WITHDRAWAL -->
     <div class="card">
@@ -191,14 +175,13 @@
         type="tel"
         placeholder="01XXXXXXXXX">
 
-      <button onclick="requestWithdrawal()">
+      <button onclick="requestWithdrawal(event)">
         টাকা উত্তোলনের আবেদন করুন
       </button>
 
       <p id="withdrawMsg" class="message"></p>
 
     </div>
-
 
     <!-- RESELLER WITHDRAWAL HISTORY -->
     <div class="card">
@@ -215,22 +198,22 @@
 
     </div>
 
-
     <!-- RESELLER ORDER FORM -->
     <div class="card">
 
       <h3>কাস্টমারের অর্ডার জমা দিন</h3>
 
-      <div id="resellerProducts">
-        পণ্য লোড হচ্ছে...
-      </div>
+      <div id="resellerProducts">পণ্য লোড হচ্ছে...</div>
 
       <input id="resellerCustomerName" placeholder="কাস্টমারের নাম">
 
-      <input id="resellerCustomerPhone"
-        type="tel" placeholder="মোবাইল নম্বর">
+      <input
+        id="resellerCustomerPhone"
+        type="tel"
+        placeholder="মোবাইল নম্বর">
 
-      <textarea id="resellerCustomerAddress"
+      <textarea
+        id="resellerCustomerAddress"
         placeholder="সম্পূর্ণ ঠিকানা"></textarea>
 
       <input id="resellerQuantity" type="number" min="1" value="1">
@@ -240,7 +223,6 @@
       <p id="resellerOrderMsg" class="message"></p>
 
     </div>
-
 
     <!-- RESELLER ORDERS -->
     <div class="card">
@@ -256,7 +238,6 @@
     <button onclick="resellerLogout()">Logout</button>
 
   </section>
-
 
   <!-- ADMIN PANEL -->
   <section id="panel">
@@ -275,19 +256,14 @@
 
     </div>
 
-
     <!-- ADMIN DASHBOARD HOME -->
     <div id="dashboard">
 
       <div class="card">
-
         <h3>DX TRUST Admin</h3>
-
         <p>তোমার অ্যাডমিন প্যানেলে স্বাগতম।</p>
         <p>এখান থেকে পণ্য ও অর্ডার পরিচালনা করতে পারবে।</p>
-
       </div>
-
 
       <!-- BONUS SETTINGS -->
       <div class="card">
@@ -295,11 +271,9 @@
         <h3>রিসেলার বোনাস সেটিংস</h3>
 
         <label for="bonusTarget">মাসিক বিক্রির লক্ষ্য</label>
-
         <input id="bonusTarget" type="number" value="100000">
 
         <label for="bonusAmount">বোনাসের পরিমাণ (৳)</label>
-
         <input id="bonusAmount" type="number" min="0" value="1000">
 
         <button onclick="saveBonusSettings()">
@@ -309,7 +283,6 @@
         <p id="bonusMsg" class="message"></p>
 
       </div>
-
 
       <!-- ADMIN BONUS REPORT -->
       <div class="card">
@@ -326,7 +299,6 @@
 
       </div>
 
-
       <!-- ADMIN REFERRAL REPORT -->
       <div class="card">
 
@@ -341,7 +313,6 @@
         </div>
 
       </div>
-
 
       <!-- ADMIN WITHDRAWAL MANAGEMENT -->
       <div class="card">
@@ -364,7 +335,6 @@
 
     </div>
 
-
     <!-- ADMIN PRODUCTS -->
     <div id="products" style="display:none">
 
@@ -372,11 +342,15 @@
 
       <input id="productName" placeholder="পণ্যের নাম">
 
-      <textarea id="productDescription"
+      <textarea
+        id="productDescription"
         placeholder="পণ্যের বিবরণ"></textarea>
 
-      <input id="productPrice"
-        type="number" min="0" placeholder="পণ্যের দাম">
+      <input
+        id="productPrice"
+        type="number"
+        min="0"
+        placeholder="পণ্যের দাম">
 
       <label for="productImageFile">
         পণ্যের সর্বোচ্চ ৫টি ছবি নির্বাচন করুন
@@ -398,7 +372,6 @@
 
     </div>
 
-
     <!-- ADMIN ORDERS -->
     <div id="orders" style="display:none">
 
@@ -413,7 +386,6 @@
   </section>
 
 </div>
-
 
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
