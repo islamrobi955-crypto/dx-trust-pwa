@@ -1,6 +1,6 @@
 /* =====================================================
    DX TRUST MEDIA LIFESTYLE COX
-   COMPLETE MAIN JAVASCRIPT
+   COMPLETE MAIN JAVASCRIPT - UPDATED
 ===================================================== */
 
 /* 1. SUPABASE CONNECTION */
@@ -15,8 +15,12 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentProfile = null;
+
 let selectedStoreProduct = null;
 let selectedResellerProduct = null;
+
+let selectedStoreSize = "";
+let selectedResellerSize = "";
 
 const STORAGE_BUCKET = "product-images";
 const MAX_PRODUCT_IMAGES = 5;
@@ -69,6 +73,18 @@ function showMessage(id, message, isError = false) {
   element.style.color = isError ? "#ff5555" : "#d6a600";
 }
 
+function formatDate(value) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleString("bn-BD", {
+    dateStyle: "short",
+    timeStyle: "short"
+  });
+}
+
+
+/* 4. PRODUCT HELPERS */
+
 function getProductImages(product) {
   let images = [];
 
@@ -89,79 +105,79 @@ function getProductImages(product) {
   return images.filter(Boolean);
 }
 
+function getProductSizes(product) {
+  if (!product || !product.sizes) return [];
+
+  if (Array.isArray(product.sizes)) {
+    return product.sizes
+      .map(size => String(size).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof product.sizes === "string") {
+    return product.sizes
+      .split(",")
+      .map(size => size.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function getProductSizeText(product) {
+  const sizes = getProductSizes(product);
+  return sizes.length ? sizes.join(", ") : "সাইজ নেই";
+}
+
 function productImageHTML(product) {
   const images = getProductImages(product);
 
   if (!images.length) {
-    return `<div class="product-no-image">ছবি নেই</div>`;
+    return `
+      <div style="
+        width:100%;
+        height:170px;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        background:#111;
+        color:#aaa;
+        border-radius:10px;
+      ">ছবি নেই</div>
+    `;
   }
 
-  const thumbnails = images.map((url, index) => `
-    <button
-      type="button"
-      onclick="showGalleryImage(this)"
-      data-image="${escapeHTML(url)}"
-      aria-label="ছবি ${index + 1}"
-      style="
-        width:58px;
-        height:58px;
-        padding:2px;
-        flex:0 0 58px;
-        border:2px solid ${index === 0 ? "#d6a600" : "#555"};
-        border-radius:7px;
-        background:#080808;
-        overflow:hidden;
-        cursor:pointer;
-      "
-    >
-      <img
-        src="${escapeHTML(url)}"
-        alt="ছবি ${index + 1}"
-        loading="lazy"
-        style="width:100%;height:100%;object-fit:cover;border-radius:5px;"
-      >
-    </button>
-  `).join("");
+  const thumbnails = images.length > 1
+    ? `
+      <div class="product-thumbnails">
+        ${images.map((url, index) => `
+          <button
+            type="button"
+            class="product-thumbnail"
+            onclick="showGalleryImage(this)"
+            data-image="${escapeHTML(url)}"
+            aria-label="ছবি ${index + 1}"
+          >
+            <img
+              src="${escapeHTML(url)}"
+              alt="ছবি ${index + 1}"
+              loading="lazy"
+            >
+          </button>
+        `).join("")}
+      </div>
+    `
+    : "";
 
   return `
-    <div class="product-gallery" style="width:100%;">
-
+    <div class="product-gallery">
       <img
         class="product-main-image"
         src="${escapeHTML(images[0])}"
         alt="${escapeHTML(product.name)}"
         loading="lazy"
-        style="
-          width:100%;
-          height:190px;
-          object-fit:cover;
-          border-radius:10px;
-          display:block;
-        "
       >
-
-      ${
-        images.length > 1
-          ? `
-            <div style="
-              display:flex;
-              gap:7px;
-              overflow-x:auto;
-              padding:9px 2px;
-              margin-top:5px;
-            ">
-              ${thumbnails}
-            </div>
-            <p style="
-              text-align:center;
-              color:#d6a600;
-              font-size:12px;
-              margin:2px 0 8px;
-            ">${images.length} টি ছবি • ছবি দেখতে চাপ দিন</p>
-          `
-          : ""
-      }
-
+      ${thumbnails}
     </div>
   `;
 }
@@ -177,26 +193,129 @@ function showGalleryImage(button) {
 
   mainImage.src = imageUrl;
 
-  gallery.querySelectorAll("button[data-image]").forEach(item => {
-    item.style.opacity = "0.65";
+  gallery.querySelectorAll(".product-thumbnail").forEach(item => {
     item.style.borderColor = "#555";
+    item.style.opacity = "0.7";
   });
 
-  button.style.opacity = "1";
   button.style.borderColor = "#d6a600";
+  button.style.opacity = "1";
 }
 
-function formatDate(value) {
-  if (!value) return "-";
+function renderDetailGallery(product, prefix) {
+  const images = getProductImages(product);
 
-  return new Date(value).toLocaleString("bn-BD", {
-    dateStyle: "short",
-    timeStyle: "short"
+  const mainImageId = prefix + "MainImage";
+  const thumbnailsId = prefix + "ImageThumbnails";
+
+  const mainImage = getElement(mainImageId);
+  const thumbnailContainer = getElement(thumbnailsId);
+
+  if (!mainImage || !thumbnailContainer) return;
+
+  if (!images.length) {
+    mainImage.removeAttribute("src");
+    mainImage.alt = "ছবি নেই";
+    thumbnailContainer.innerHTML = "ছবি নেই";
+    return;
+  }
+
+  mainImage.src = images[0];
+  mainImage.alt = product.name || "পণ্যের ছবি";
+
+  thumbnailContainer.innerHTML = images.map((url, index) => `
+    <button
+      type="button"
+      class="product-thumbnail"
+      data-image="${escapeHTML(url)}"
+      onclick="showGalleryImage(this)"
+      style="border-color:${index === 0 ? "#d6a600" : "#555"}"
+    >
+      <img
+        src="${escapeHTML(url)}"
+        alt="ছবি ${index + 1}"
+        loading="lazy"
+      >
+    </button>
+  `).join("");
+}
+
+
+/* 5. PRODUCT SIZE OPTIONS */
+
+function renderSizeButtons(product, containerId, mode) {
+  const container = getElement(containerId);
+  if (!container) return;
+
+  const sizes = getProductSizes(product);
+
+  if (!sizes.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const selectedSize = mode === "store"
+    ? selectedStoreSize
+    : selectedResellerSize;
+
+  container.innerHTML = sizes.map(size => `
+    <button
+      type="button"
+      class="size-option ${selectedSize === size ? "selected" : ""}"
+      data-size="${escapeHTML(size)}"
+    >${escapeHTML(size)}</button>
+  `).join("");
+
+  container.querySelectorAll("[data-size]").forEach(button => {
+    button.addEventListener("click", () => {
+      const size = button.getAttribute("data-size");
+
+      if (mode === "store") {
+        selectStoreSize(size);
+      } else {
+        selectResellerSize(size);
+      }
+    });
   });
 }
 
+function selectStoreSize(size) {
+  selectedStoreSize = size;
 
-/* 4. PAGE NAVIGATION */
+  if (!selectedStoreProduct) return;
+
+  renderSizeButtons(
+    selectedStoreProduct,
+    "detailSizeOptions",
+    "store"
+  );
+
+  renderSizeButtons(
+    selectedStoreProduct,
+    "customerOrderSizeOptions",
+    "store"
+  );
+
+  showMessage("detailSizeMessage", "নির্বাচিত সাইজ: " + size);
+  showMessage("customerOrderSizeMessage", "নির্বাচিত সাইজ: " + size);
+}
+
+function selectResellerSize(size) {
+  selectedResellerSize = size;
+
+  if (!selectedResellerProduct) return;
+
+  renderSizeButtons(
+    selectedResellerProduct,
+    "resellerDetailSizeOptions",
+    "reseller"
+  );
+
+  showMessage("resellerDetailSizeMessage", "নির্বাচিত সাইজ: " + size);
+}
+
+
+/* 6. PAGE NAVIGATION */
 
 function show(id) {
   const pages = [
@@ -214,6 +333,10 @@ function show(id) {
 
   const target = getElement(id);
   if (target) target.style.display = "block";
+
+  if (id === "store") {
+    loadStoreProducts();
+  }
 }
 
 function openLogin() {
@@ -225,6 +348,10 @@ function closeOrder() {
   if (form) form.style.display = "none";
 
   selectedStoreProduct = null;
+  selectedStoreSize = "";
+
+  const detail = getElement("productDetailModal");
+  if (detail) detail.style.display = "none";
 }
 
 function showPage(page) {
@@ -248,7 +375,7 @@ function showPage(page) {
 }
 
 
-/* 5. STORE PRODUCTS */
+/* 7. STORE PRODUCTS */
 
 async function loadStoreProducts() {
   const container = getElement("storeProducts");
@@ -276,15 +403,24 @@ async function loadStoreProducts() {
   container.innerHTML = data.map(product => `
     <div class="product-card">
       ${productImageHTML(product)}
+
       <h3>${escapeHTML(product.name)}</h3>
-      <p>${escapeHTML(product.description || "")}</p>
+
+      <p>${escapeHTML(product.description || "").slice(0, 100)}</p>
+
+      <p class="small">সাইজ: ${escapeHTML(getProductSizeText(product))}</p>
+
       <h3>${taka(product.price)}</h3>
+
       <button onclick="selectStoreProduct(${Number(product.id)})">
-        অর্ডার করুন
+        বিস্তারিত দেখুন
       </button>
     </div>
   `).join("");
 }
+
+
+/* 8. CUSTOMER PRODUCT DETAILS */
 
 async function selectStoreProduct(productId) {
   const { data, error } = await db
@@ -300,19 +436,111 @@ async function selectStoreProduct(productId) {
   }
 
   selectedStoreProduct = data;
+  selectedStoreSize = "";
 
+  const detail = getElement("productDetailModal");
+  const orderForm = getElement("orderForm");
+
+  if (orderForm) orderForm.style.display = "none";
+
+  setText("detailProductName", data.name);
+  setText("detailProductPrice", taka(data.price));
+  setText("detailProductDescription", data.description || "বিবরণ দেওয়া হয়নি।");
+
+  renderDetailGallery(data, "detail");
+
+  const sizes = getProductSizes(data);
+  const sizeArea = getElement("detailSizeArea");
+
+  if (sizeArea) {
+    sizeArea.style.display = sizes.length ? "block" : "none";
+  }
+
+  renderSizeButtons(data, "detailSizeOptions", "store");
+
+  setText("detailSizeMessage", "");
+  setText("customerOrderSizeMessage", "");
+
+  const quantity = getElement("detailQuantity");
+  if (quantity) quantity.value = "1";
+
+  if (detail) {
+    detail.style.display = "block";
+    detail.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function closeProductDetails() {
+  const detail = getElement("productDetailModal");
+  if (detail) detail.style.display = "none";
+
+  selectedStoreProduct = null;
+  selectedStoreSize = "";
+}
+
+function orderFromDetails() {
+  if (!selectedStoreProduct) {
+    alert("আগে পণ্য নির্বাচন করুন।");
+    return;
+  }
+
+  const sizes = getProductSizes(selectedStoreProduct);
+
+  if (sizes.length && !selectedStoreSize) {
+    showMessage("detailSizeMessage", "অর্ডারের আগে সাইজ নির্বাচন করুন।", true);
+    return;
+  }
+
+  const quantity = Number(getValue("detailQuantity") || 1);
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    alert("সঠিক পরিমাণ লিখুন।");
+    return;
+  }
+
+  const detail = getElement("productDetailModal");
   const form = getElement("orderForm");
+
+  if (detail) detail.style.display = "none";
+
   if (form) {
     form.style.display = "block";
     form.scrollIntoView({
       behavior: "smooth",
-      block: "center"
+      block: "start"
     });
   }
 
-  showMessage("orderMsg", "নির্বাচিত পণ্য: " + data.name);
+  setText("selectedProduct", selectedStoreProduct.name + " — " + taka(selectedStoreProduct.price));
+
+  const quantityInput = getElement("orderQuantity");
+  if (quantityInput) quantityInput.value = quantity;
+
+  const sizeArea = getElement("customerOrderSizeArea");
+
+  if (sizeArea) {
+    sizeArea.style.display = sizes.length ? "block" : "none";
+  }
+
+  renderSizeButtons(
+    selectedStoreProduct,
+    "customerOrderSizeOptions",
+    "store"
+  );
+
+  showMessage(
+    "customerOrderSizeMessage",
+    selectedStoreSize ? "নির্বাচিত সাইজ: " + selectedStoreSize : ""
+  );
+
+  showMessage("orderMsg", "নির্বাচিত পণ্য: " + selectedStoreProduct.name);
 }
-/* 6. CUSTOMER ORDER */
+
+
+/* 9. CUSTOMER ORDER */
 
 async function placeOrder(event) {
   if (event) event.preventDefault();
@@ -327,6 +555,8 @@ async function placeOrder(event) {
   const address = getValue("customerAddress");
   const quantity = Number(getValue("orderQuantity") || 1);
 
+  const sizes = getProductSizes(selectedStoreProduct);
+
   if (!name || !phone || !address) {
     showMessage("orderMsg", "সব তথ্য পূরণ করুন।", true);
     return;
@@ -337,12 +567,18 @@ async function placeOrder(event) {
     return;
   }
 
+  if (sizes.length && !selectedStoreSize) {
+    showMessage("customerOrderSizeMessage", "সাইজ নির্বাচন করুন।", true);
+    return;
+  }
+
   const { error } = await db.from("orders").insert({
     product_id: selectedStoreProduct.id,
     customer_name: name,
     phone,
     address,
     quantity,
+    selected_size: selectedStoreSize || null,
     status: "pending"
   });
 
@@ -358,10 +594,19 @@ async function placeOrder(event) {
   if (form) form.reset();
 
   selectedStoreProduct = null;
+  selectedStoreSize = "";
+
+  const sizeArea = getElement("customerOrderSizeArea");
+  if (sizeArea) sizeArea.style.display = "none";
+
+  setTimeout(() => {
+    if (form) form.style.display = "none";
+    show("store");
+  }, 1800);
 }
 
 
-/* 7. ADMIN LOGIN */
+/* 10. ADMIN LOGIN */
 
 async function loginAdmin(event) {
   if (event) event.preventDefault();
@@ -393,7 +638,7 @@ async function adminLogin(event) {
 }
 
 
-/* 8. RESELLER REGISTRATION */
+/* 11. RESELLER REGISTRATION */
 
 async function resellerRegister(event) {
   if (event) event.preventDefault();
@@ -448,7 +693,7 @@ async function resellerRegister(event) {
 }
 
 
-/* 9. RESELLER LOGIN */
+/* 12. RESELLER LOGIN */
 
 async function resellerLogin(event) {
   if (event) event.preventDefault();
@@ -477,7 +722,7 @@ async function resellerLogin(event) {
 }
 
 
-/* 10. REFERRAL CODE APPLY */
+/* 13. REFERRAL CODE APPLY */
 
 async function applyPendingReferralCode() {
   if (!currentUser) return;
@@ -520,7 +765,7 @@ async function applyPendingReferralCode() {
 }
 
 
-/* 11. VERIFY USER ROLE */
+/* 14. VERIFY USER ROLE */
 
 async function verifyAdmin() {
   if (!currentUser) return;
@@ -547,7 +792,11 @@ async function verifyAdmin() {
 
   if (data.role === "reseller") {
     show("resellerPanel");
-    setText("resellerWelcome", "স্বাগতম, " + (data.full_name || "Reseller"));
+
+    setText(
+      "resellerWelcome",
+      "স্বাগতম, " + (data.full_name || "Reseller")
+    );
 
     await loadResellerSummary();
     await loadResellerProducts();
@@ -561,7 +810,7 @@ async function verifyAdmin() {
 }
 
 
-/* 12. SESSION CHECK */
+/* 15. SESSION CHECK */
 
 async function checkSession() {
   const { data, error } = await db.auth.getSession();
@@ -582,15 +831,19 @@ async function checkSession() {
 }
 
 
-/* 13. LOGOUT */
+/* 16. LOGOUT */
 
 async function logout() {
   await db.auth.signOut();
 
   currentUser = null;
   currentProfile = null;
+
   selectedStoreProduct = null;
   selectedResellerProduct = null;
+
+  selectedStoreSize = "";
+  selectedResellerSize = "";
 
   show("store");
   await loadStoreProducts();
@@ -601,7 +854,7 @@ async function resellerLogout() {
 }
 
 
-/* 14. ADMIN ADD PRODUCT */
+/* 17. ADMIN ADD PRODUCT */
 
 async function addProduct(event) {
   if (event) event.preventDefault();
@@ -609,6 +862,13 @@ async function addProduct(event) {
   const name = getValue("productName");
   const description = getValue("productDescription");
   const price = Number(getValue("productPrice"));
+
+  const sizes = getValue("productSizes")
+    .split(",")
+    .map(size => size.trim())
+    .filter(Boolean);
+
+  const uniqueSizes = [...new Set(sizes)];
 
   const fileInput = getElement("productImageFile");
   const files = fileInput ? Array.from(fileInput.files || []) : [];
@@ -641,7 +901,10 @@ async function addProduct(event) {
 
   for (const file of files) {
     const extension = file.name.split(".").pop().toLowerCase();
-    const safeExtension = /^[a-z0-9]+$/.test(extension) ? extension : "jpg";
+
+    const safeExtension = /^[a-z0-9]+$/.test(extension)
+      ? extension
+      : "jpg";
 
     const fileName =
       Date.now() + "_" +
@@ -659,7 +922,13 @@ async function addProduct(event) {
 
     if (uploadError) {
       console.error(uploadError);
-      showMessage("productMsg", "ছবি আপলোড হয়নি। Storage permission পরীক্ষা করুন।", true);
+
+      showMessage(
+        "productMsg",
+        "ছবি আপলোড হয়নি। Storage permission পরীক্ষা করুন।",
+        true
+      );
+
       return;
     }
 
@@ -676,19 +945,25 @@ async function addProduct(event) {
     name,
     description,
     price,
+    sizes: uniqueSizes,
     image_url: imageUrls[0] || null,
     image_urls: imageUrls
   });
 
   if (error) {
     console.error(error);
-    showMessage("productMsg", "পণ্য যোগ করা যায়নি।", true);
+    showMessage("productMsg", "পণ্য যোগ করা যায়নি: " + error.message, true);
     return;
   }
 
   showMessage("productMsg", "পণ্য সফলভাবে যোগ হয়েছে!");
 
-  ["productName", "productDescription", "productPrice"].forEach(id => {
+  [
+    "productName",
+    "productDescription",
+    "productPrice",
+    "productSizes"
+  ].forEach(id => {
     const element = getElement(id);
     if (element) element.value = "";
   });
@@ -699,7 +974,8 @@ async function addProduct(event) {
   await loadStoreProducts();
 }
 
-/* 15. ADMIN PRODUCT LIST */
+
+/* 18. ADMIN PRODUCT LIST */
 
 async function loadProducts() {
   const container = getElement("productList");
@@ -725,9 +1001,17 @@ async function loadProducts() {
 
   container.innerHTML = data.map(product => `
     <div class="admin-product-card">
+
       ${productImageHTML(product)}
+
       <h3>${escapeHTML(product.name)}</h3>
-      <p>${escapeHTML(product.description || "")}</p>
+
+      <p class="product-detail-description">
+        ${escapeHTML(product.description || "")}
+      </p>
+
+      <p>সাইজ: ${escapeHTML(getProductSizeText(product))}</p>
+
       <strong>${taka(product.price)}</strong>
 
       <p style="color:${product.is_active ? "#00cc66" : "#ff5555"}">
@@ -736,18 +1020,24 @@ async function loadProducts() {
 
       ${
         product.is_active
-          ? `<button onclick="changeProductStatus(${Number(product.id)}, false)">
+          ? `
+            <button onclick="changeProductStatus(${Number(product.id)}, false)">
               পণ্য Archive করো
-            </button>`
-          : `<button onclick="changeProductStatus(${Number(product.id)}, true)">
+            </button>
+          `
+          : `
+            <button onclick="changeProductStatus(${Number(product.id)}, true)">
               আবার চালু করো
-            </button>`
+            </button>
+          `
       }
+
     </div>
   `).join("");
 }
 
-/* 16. ARCHIVE / RESTORE PRODUCT */
+
+/* 19. ARCHIVE / RESTORE PRODUCT */
 
 async function changeProductStatus(id, isActive) {
   const message = isActive
@@ -782,7 +1072,40 @@ async function changeProductStatus(id, isActive) {
   await loadProducts();
   await loadStoreProducts();
 }
-/* 17. ADMIN ORDERS */
+
+
+/* 20. PRODUCT NAME LOOKUP FOR ORDERS */
+
+async function getProductNameMap(orders) {
+  const ids = [...new Set(
+    orders
+      .map(order => Number(order.product_id))
+      .filter(id => Number.isFinite(id))
+  )];
+
+  if (!ids.length) return {};
+
+  const { data, error } = await db
+    .from("products")
+    .select("id,name")
+    .in("id", ids);
+
+  if (error) {
+    console.error("Product name lookup:", error);
+    return {};
+  }
+
+  const map = {};
+
+  (data || []).forEach(product => {
+    map[product.id] = product.name;
+  });
+
+  return map;
+}
+
+
+/* 21. ADMIN ORDERS */
 
 async function loadOrders() {
   const container = getElement("orderList");
@@ -806,26 +1129,48 @@ async function loadOrders() {
     return;
   }
 
+  const productNames = await getProductNameMap(data);
+
   container.innerHTML = data.map(order => `
-    <div class="order-card">
+    <div class="order-card card">
+
       <h3>অর্ডার #${Number(order.id)}</h3>
+
       <p>কাস্টমার: ${escapeHTML(order.customer_name)}</p>
+
       <p>ফোন: ${escapeHTML(order.phone)}</p>
+
       <p>ঠিকানা: ${escapeHTML(order.address)}</p>
-      <p>পণ্য ID: ${Number(order.product_id)}</p>
+
+      <p>
+        পণ্য:
+        ${escapeHTML(productNames[order.product_id] || "পণ্য ID: " + order.product_id)}
+      </p>
+
+      <p>সাইজ: ${escapeHTML(order.selected_size || "প্রযোজ্য নয়")}</p>
+
       <p>পরিমাণ: ${Number(order.quantity)}</p>
+
       <p>অবস্থা: ${escapeHTML(order.status)}</p>
+
+      <p>তারিখ: ${formatDate(order.created_at)}</p>
+
       ${
         order.status !== "completed"
-          ? `<button onclick="completeOrder(${Number(order.id)})">সম্পন্ন করুন</button>`
+          ? `
+            <button onclick="completeOrder(${Number(order.id)})">
+              সম্পন্ন করুন
+            </button>
+          `
           : `<span>সম্পন্ন হয়েছে</span>`
       }
+
     </div>
   `).join("");
 }
 
 
-/* 18. COMPLETE ORDER */
+/* 22. COMPLETE ORDER */
 
 async function completeOrder(id) {
   if (!confirm("এই অর্ডারটি সম্পন্ন হয়েছে নিশ্চিত করছেন?")) return;
@@ -849,7 +1194,7 @@ async function completeOrder(id) {
 }
 
 
-/* 19. RESELLER SUMMARY */
+/* 23. RESELLER SUMMARY */
 
 async function loadResellerSummary() {
   if (!currentUser) return;
@@ -874,14 +1219,22 @@ async function loadResellerSummary() {
   setText("resellerEarnings", taka(commission));
   setText("referralEarnings", taka(referral));
   setText("myReferralCode", data.referral_code || "তৈরি হয়নি");
-  setText("withdrawableBalance", taka(commission + referral + bonus));
-  setText("resellerWelcome", "স্বাগতম, " + (data.full_name || "Reseller"));
+
+  setText(
+    "withdrawableBalance",
+    taka(commission + referral + bonus)
+  );
+
+  setText(
+    "resellerWelcome",
+    "স্বাগতম, " + (data.full_name || "Reseller")
+  );
 
   await loadResellerBonusStatus();
 }
 
 
-/* 20. RESELLER BONUS STATUS */
+/* 24. RESELLER BONUS STATUS */
 
 async function loadResellerBonusStatus() {
   const targetElement = getElement("resellerTarget");
@@ -894,18 +1247,22 @@ async function loadResellerBonusStatus() {
     .maybeSingle();
 
   if (settings && targetElement) {
-    targetElement.textContent = taka(settings.target_sales);
+    targetElement.textContent = "লক্ষ্য: " + taka(settings.target_sales);
   }
 
   const { data, error } = await db.rpc("get_reseller_bonus_status");
 
   if (error) {
     console.error("Bonus status:", error);
-    if (statusElement) statusElement.textContent = "বোনাসের তথ্য পাওয়া যায়নি।";
+
+    if (statusElement) {
+      statusElement.textContent = "বোনাসের তথ্য পাওয়া যায়নি।";
+    }
+
     return;
   }
 
-  let result = Array.isArray(data) ? data[0] : data;
+  const result = Array.isArray(data) ? data[0] : data;
 
   if (typeof result === "boolean") {
     if (statusElement) {
@@ -913,22 +1270,28 @@ async function loadResellerBonusStatus() {
         ? "বোনাস অর্জিত হয়েছে।"
         : "বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
     }
+
     return;
   }
 
   if (result && typeof result === "object") {
-    const status = result.status ?? result.eligible ?? result.bonus_eligible;
+    const status = result.status ??
+      result.eligible ??
+      result.bonus_eligible;
 
     if (statusElement) {
       statusElement.textContent =
-        status === true || status === "true" || status === "completed"
+        status === true ||
+        status === "true" ||
+        status === "completed"
           ? "বোনাস অর্জিত হয়েছে।"
           : "বোনাসের লক্ষ্য এখনো পূরণ হয়নি।";
     }
 
     if (result.sales_total !== undefined) {
-      setText("resellerSales", taka(result.sales_total));
+      setText("resellerSales", "মাসিক বিক্রি: " + taka(result.sales_total));
     }
+
     return;
   }
 
@@ -938,7 +1301,7 @@ async function loadResellerBonusStatus() {
 }
 
 
-/* 21. RESELLER PRODUCTS */
+/* 25. RESELLER PRODUCTS */
 
 async function loadResellerProducts() {
   const container = getElement("resellerProducts");
@@ -965,16 +1328,27 @@ async function loadResellerProducts() {
 
   container.innerHTML = data.map(product => `
     <div class="product-card">
+
       ${productImageHTML(product)}
+
       <h3>${escapeHTML(product.name)}</h3>
-      <p>${escapeHTML(product.description || "")}</p>
+
+      <p>${escapeHTML(product.description || "").slice(0, 100)}</p>
+
+      <p class="small">সাইজ: ${escapeHTML(getProductSizeText(product))}</p>
+
       <h3>${taka(product.price)}</h3>
+
       <button onclick="selectResellerProduct(${Number(product.id)})">
-        এই পণ্য নির্বাচন করুন
+        বিস্তারিত দেখুন
       </button>
+
     </div>
   `).join("");
 }
+
+
+/* 26. RESELLER PRODUCT DETAILS */
 
 async function selectResellerProduct(id) {
   const { data, error } = await db
@@ -990,19 +1364,54 @@ async function selectResellerProduct(id) {
   }
 
   selectedResellerProduct = data;
+  selectedResellerSize = "";
 
-  showMessage("resellerOrderMsg", "নির্বাচিত পণ্য: " + data.name);
+  const detail = getElement("resellerProductDetail");
 
-  const form = getElement("resellerCustomerName");
-  if (form) {
-    form.scrollIntoView({
+  setText("resellerDetailProductName", data.name);
+  setText("resellerDetailProductPrice", taka(data.price));
+  setText("resellerDetailProductDescription", data.description || "বিবরণ দেওয়া হয়নি।");
+
+  renderDetailGallery(data, "resellerDetail");
+
+  const sizes = getProductSizes(data);
+  const sizeArea = getElement("resellerDetailSizeArea");
+
+  if (sizeArea) {
+    sizeArea.style.display = sizes.length ? "block" : "none";
+  }
+
+  renderSizeButtons(
+    data,
+    "resellerDetailSizeOptions",
+    "reseller"
+  );
+
+  setText("resellerDetailSizeMessage", "");
+
+  if (detail) {
+    detail.style.display = "block";
+
+    detail.scrollIntoView({
       behavior: "smooth",
-      block: "center"
+      block: "start"
     });
   }
+
+  showMessage("resellerOrderMsg", "নির্বাচিত পণ্য: " + data.name);
 }
 
-/* 22. RESELLER PLACE ORDER */
+function closeResellerProductDetails() {
+  const detail = getElement("resellerProductDetail");
+
+  if (detail) detail.style.display = "none";
+
+  selectedResellerProduct = null;
+  selectedResellerSize = "";
+}
+
+
+/* 27. RESELLER PLACE ORDER */
 
 async function placeResellerOrder(event) {
   if (event) event.preventDefault();
@@ -1022,6 +1431,8 @@ async function placeResellerOrder(event) {
   const address = getValue("resellerCustomerAddress");
   const quantity = Number(getValue("resellerQuantity") || 1);
 
+  const sizes = getProductSizes(selectedResellerProduct);
+
   if (!name || !phone || !address) {
     showMessage("resellerOrderMsg", "সব তথ্য পূরণ করুন।", true);
     return;
@@ -1032,19 +1443,25 @@ async function placeResellerOrder(event) {
     return;
   }
 
+  if (sizes.length && !selectedResellerSize) {
+    showMessage("resellerDetailSizeMessage", "সাইজ নির্বাচন করুন।", true);
+    return;
+  }
+
   const { error } = await db.from("orders").insert({
     product_id: selectedResellerProduct.id,
     customer_name: name,
     phone,
     address,
     quantity,
+    selected_size: selectedResellerSize || null,
     reseller_id: currentUser.id,
     status: "pending"
   });
 
   if (error) {
     console.error(error);
-    showMessage("resellerOrderMsg", "অর্ডার করা যায়নি।", true);
+    showMessage("resellerOrderMsg", "অর্ডার করা যায়নি: " + error.message, true);
     return;
   }
 
@@ -1061,11 +1478,16 @@ async function placeResellerOrder(event) {
   });
 
   selectedResellerProduct = null;
+  selectedResellerSize = "";
+
+  const detail = getElement("resellerProductDetail");
+  if (detail) detail.style.display = "none";
+
   await loadResellerOrders();
 }
 
 
-/* 23. RESELLER ORDER HISTORY */
+/* 28. RESELLER ORDER HISTORY */
 
 async function loadResellerOrders() {
   if (!currentUser) return;
@@ -1092,21 +1514,36 @@ async function loadResellerOrders() {
     return;
   }
 
+  const productNames = await getProductNameMap(data);
+
   container.innerHTML = data.map(order => `
-    <div class="order-card">
+    <div class="order-card card">
+
       <h3>অর্ডার #${Number(order.id)}</h3>
+
       <p>কাস্টমার: ${escapeHTML(order.customer_name)}</p>
+
       <p>ফোন: ${escapeHTML(order.phone)}</p>
-      <p>পণ্য ID: ${Number(order.product_id)}</p>
+
+      <p>
+        পণ্য:
+        ${escapeHTML(productNames[order.product_id] || "পণ্য ID: " + order.product_id)}
+      </p>
+
+      <p>সাইজ: ${escapeHTML(order.selected_size || "প্রযোজ্য নয়")}</p>
+
       <p>পরিমাণ: ${Number(order.quantity)}</p>
+
       <p>অবস্থা: ${escapeHTML(order.status)}</p>
+
       <p>তারিখ: ${formatDate(order.created_at)}</p>
+
     </div>
   `).join("");
 }
 
 
-/* 24. REFERRAL LINK */
+/* 29. REFERRAL LINK */
 
 async function copyReferralLink() {
   if (!currentProfile || !currentProfile.referral_code) {
@@ -1122,9 +1559,11 @@ async function copyReferralLink() {
 
   try {
     await navigator.clipboard.writeText(link);
+
     showMessage("referralLinkMsg", "রেফারেল লিংক কপি হয়েছে!");
   } catch {
     const input = document.createElement("textarea");
+
     input.value = link;
     document.body.appendChild(input);
     input.select();
@@ -1141,7 +1580,7 @@ async function copyReferralLink() {
 }
 
 
-/* 25. RESELLER WITHDRAWAL REQUEST */
+/* 30. RESELLER WITHDRAWAL REQUEST */
 
 async function requestWithdrawal(event) {
   if (event) event.preventDefault();
@@ -1190,7 +1629,7 @@ async function requestWithdrawal(event) {
 }
 
 
-/* 26. RESELLER WITHDRAWAL HISTORY */
+/* 31. RESELLER WITHDRAWAL HISTORY */
 
 async function loadResellerWithdrawals() {
   if (!currentUser) return;
@@ -1219,18 +1658,25 @@ async function loadResellerWithdrawals() {
 
   container.innerHTML = data.map(item => `
     <div class="withdrawal-card">
+
       <h3>আবেদন ID: ${Number(item.id)}</h3>
+
       <p>টাকার পরিমাণ: ${taka(item.amount)}</p>
+
       <p>মাধ্যম: ${escapeHTML(item.payment_method)}</p>
+
       <p>মোবাইল নম্বর: ${escapeHTML(item.payment_number)}</p>
+
       <p>অবস্থা: ${escapeHTML(item.status)}</p>
+
       <p>তারিখ: ${formatDate(item.created_at)}</p>
+
     </div>
   `).join("");
 }
 
 
-/* 27. ADMIN WITHDRAWAL LIST */
+/* 32. ADMIN WITHDRAWAL LIST */
 
 async function loadAdminWithdrawals() {
   const container = getElement("adminWithdrawalList");
@@ -1256,31 +1702,41 @@ async function loadAdminWithdrawals() {
 
   container.innerHTML = data.map(item => `
     <div class="withdrawal-card">
+
       <h3>আবেদন ID: ${Number(item.id)}</h3>
+
       <p>রিসেলার ID: ${escapeHTML(item.reseller_id)}</p>
+
       <p>টাকার পরিমাণ: ${taka(item.amount)}</p>
+
       <p>পেমেন্ট মাধ্যম: ${escapeHTML(item.payment_method)}</p>
+
       <p>মোবাইল নম্বর: ${escapeHTML(item.payment_number)}</p>
+
       <p>তারিখ: ${formatDate(item.created_at)}</p>
+
       <p>অবস্থা: ${escapeHTML(item.status)}</p>
+
       ${
         item.status === "pending"
           ? `
             <button onclick="processWithdrawal(${Number(item.id)}, 'paid')">
               টাকা পাঠানো হয়েছে
             </button>
+
             <button onclick="processWithdrawal(${Number(item.id)}, 'rejected')">
               আবেদন বাতিল
             </button>
           `
           : ""
       }
+
     </div>
   `).join("");
 }
 
 
-/* 28. ADMIN PROCESS WITHDRAWAL */
+/* 33. ADMIN PROCESS WITHDRAWAL */
 
 async function processWithdrawal(id, action) {
   if (!["paid", "rejected"].includes(action)) return;
@@ -1307,11 +1763,12 @@ async function processWithdrawal(id, action) {
   }
 
   showMessage("adminWithdrawalMsg", "আবেদনের অবস্থা আপডেট হয়েছে।");
+
   await loadAdminWithdrawals();
 }
 
 
-/* 29. BONUS SETTINGS */
+/* 34. BONUS SETTINGS */
 
 async function loadBonusSettings() {
   const { data, error } = await db
@@ -1335,7 +1792,7 @@ async function loadBonusSettings() {
 }
 
 
-/* 30. SAVE BONUS SETTINGS */
+/* 35. SAVE BONUS SETTINGS */
 
 async function saveBonusSettings(event) {
   if (event) event.preventDefault();
@@ -1395,7 +1852,7 @@ async function saveBonusSettings(event) {
 }
 
 
-/* 31. ADMIN BONUS REPORT */
+/* 36. ADMIN BONUS REPORT */
 
 async function loadAdminBonusReport() {
   const container = getElement("adminBonusReport");
@@ -1420,17 +1877,23 @@ async function loadAdminBonusReport() {
 
   container.innerHTML = data.map(item => `
     <div class="report-card">
+
       <p>রিসেলার ID: ${escapeHTML(item.reseller_id || "-")}</p>
+
       <p>মোট বিক্রয়: ${taka(item.sales_total)}</p>
+
       <p>লক্ষ্যমাত্রা: ${taka(item.target_sales)}</p>
+
       <p>বোনাস: ${taka(item.bonus_amount)}</p>
+
       <p>তারিখ: ${formatDate(item.created_at)}</p>
+
     </div>
   `).join("");
 }
 
 
-/* 32. ADMIN REFERRAL REPORT */
+/* 37. ADMIN REFERRAL REPORT */
 
 async function loadAdminReferralReport() {
   const container = getElement("adminReferralReport");
@@ -1456,17 +1919,23 @@ async function loadAdminReferralReport() {
 
   container.innerHTML = data.map(item => `
     <div class="report-card">
+
       <p>অর্ডার ID: ${Number(item.order_id)}</p>
+
       <p>রেফারার ID: ${escapeHTML(item.referrer_id)}</p>
+
       <p>নতুন রিসেলার ID: ${escapeHTML(item.referred_reseller_id)}</p>
+
       <p>রিওয়ার্ড: ${taka(item.reward_amount)}</p>
+
       <p>তারিখ: ${formatDate(item.created_at)}</p>
+
     </div>
   `).join("");
 }
 
 
-/* 33. REFERRAL URL DETECTION */
+/* 38. REFERRAL URL DETECTION */
 
 function detectReferralCode() {
   const params = new URLSearchParams(window.location.search);
@@ -1475,7 +1944,9 @@ function detectReferralCode() {
   if (code) {
     const input = getElement("referralCode");
 
-    if (input) input.value = code.toUpperCase();
+    if (input) {
+      input.value = code.toUpperCase();
+    }
 
     localStorage.setItem(
       "pendingReferralCode",
@@ -1485,21 +1956,29 @@ function detectReferralCode() {
 }
 
 
-/* 34. AUTH STATE LISTENER */
+/* 39. AUTH STATE LISTENER */
 
 db.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT") {
     currentUser = null;
     currentProfile = null;
+
+    selectedStoreProduct = null;
+    selectedResellerProduct = null;
+
+    selectedStoreSize = "";
+    selectedResellerSize = "";
+
     show("store");
   }
 });
 
 
-/* 35. INITIAL APP START */
+/* 40. INITIAL APP START */
 
 document.addEventListener("DOMContentLoaded", async () => {
   detectReferralCode();
+
   await loadStoreProducts();
   await checkSession();
 });
