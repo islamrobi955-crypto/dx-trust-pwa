@@ -736,7 +736,6 @@ async function loadProducts() {
     </div>
   `).join("");
 }
-
 /* 16. DELETE PRODUCT */
 
 async function deleteProduct(id) {
@@ -773,7 +772,6 @@ async function deleteProduct(id) {
   await loadProducts();
   await loadStoreProducts();
 }
-
 
 /* 17. ADMIN ORDERS */
 
