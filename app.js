@@ -259,6 +259,7 @@ async function loadStoreProducts() {
   const { data, error } = await db
     .from("products")
     .select("*")
+    .eq("is_active", true)
     .order("id", { ascending: false });
 
   if (error) {
@@ -290,10 +291,11 @@ async function selectStoreProduct(productId) {
     .from("products")
     .select("*")
     .eq("id", productId)
+    .eq("is_active", true)
     .maybeSingle();
 
   if (error || !data) {
-    alert("পণ্য পাওয়া যায়নি।");
+    alert("পণ্যটি বর্তমানে পাওয়া যাচ্ছে না।");
     return;
   }
 
@@ -310,8 +312,6 @@ async function selectStoreProduct(productId) {
 
   showMessage("orderMsg", "নির্বাচিত পণ্য: " + data.name);
 }
-
-
 /* 6. CUSTOMER ORDER */
 
 async function placeOrder(event) {
@@ -699,7 +699,6 @@ async function addProduct(event) {
   await loadStoreProducts();
 }
 
-
 /* 15. ADMIN PRODUCT LIST */
 
 async function loadProducts() {
@@ -730,49 +729,59 @@ async function loadProducts() {
       <h3>${escapeHTML(product.name)}</h3>
       <p>${escapeHTML(product.description || "")}</p>
       <strong>${taka(product.price)}</strong>
-      <button onclick="deleteProduct(${Number(product.id)})">
-        পণ্য মুছুন
-      </button>
+
+      <p style="color:${product.is_active ? "#00cc66" : "#ff5555"}">
+        ${product.is_active ? "চালু আছে" : "Archive করা আছে"}
+      </p>
+
+      ${
+        product.is_active
+          ? `<button onclick="changeProductStatus(${Number(product.id)}, false)">
+              পণ্য Archive করো
+            </button>`
+          : `<button onclick="changeProductStatus(${Number(product.id)}, true)">
+              আবার চালু করো
+            </button>`
+      }
     </div>
   `).join("");
 }
-/* 16. DELETE PRODUCT */
 
-async function deleteProduct(id) {
-  if (!confirm("আপনি কি এই পণ্যটি মুছে ফেলতে চান?")) {
-    return;
-  }
+/* 16. ARCHIVE / RESTORE PRODUCT */
+
+async function changeProductStatus(id, isActive) {
+  const message = isActive
+    ? "এই পণ্যটি আবার চালু করতে চান?"
+    : "এই পণ্যটি Archive করতে চান?";
+
+  if (!confirm(message)) return;
 
   const { data, error } = await db
     .from("products")
-    .delete()
+    .update({ is_active: isActive })
     .eq("id", id)
     .select("id");
 
   if (error) {
-    console.error("Delete Product Error:", error);
-
-    alert(
-      "পণ্য মুছতে সমস্যা হয়েছে।\n\n" +
-      "Error: " + error.message +
-      "\nCode: " + (error.code || "Unknown") +
-      "\nDetails: " + (error.details || "নেই")
-    );
-
+    console.error("Product Status Error:", error);
+    alert("পণ্যের অবস্থা পরিবর্তন করা যায়নি: " + error.message);
     return;
   }
 
   if (!data || data.length === 0) {
-    alert("পণ্যটি মুছতে পারেনি। Database Permission পরীক্ষা করতে হবে।");
+    alert("পণ্যের অবস্থা পরিবর্তন করা যায়নি।");
     return;
   }
 
-  alert("পণ্য সফলভাবে মুছে ফেলা হয়েছে!");
+  alert(
+    isActive
+      ? "পণ্য আবার চালু হয়েছে!"
+      : "পণ্য Archive করা হয়েছে!"
+  );
 
   await loadProducts();
   await loadStoreProducts();
 }
-
 /* 17. ADMIN ORDERS */
 
 async function loadOrders() {
@@ -940,6 +949,7 @@ async function loadResellerProducts() {
   const { data, error } = await db
     .from("products")
     .select("*")
+    .eq("is_active", true)
     .order("id", { ascending: false });
 
   if (error) {
@@ -971,10 +981,11 @@ async function selectResellerProduct(id) {
     .from("products")
     .select("*")
     .eq("id", id)
+    .eq("is_active", true)
     .maybeSingle();
 
   if (error || !data) {
-    alert("পণ্য পাওয়া যায়নি।");
+    alert("পণ্যটি বর্তমানে পাওয়া যাচ্ছে না।");
     return;
   }
 
@@ -984,10 +995,12 @@ async function selectResellerProduct(id) {
 
   const form = getElement("resellerCustomerName");
   if (form) {
-    form.scrollIntoView({ behavior: "smooth", block: "center" });
+    form.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
   }
 }
-
 
 /* 22. RESELLER PLACE ORDER */
 
