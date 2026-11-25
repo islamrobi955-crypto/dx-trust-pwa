@@ -5,26 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080808">
 
-  <!-- WEBSITE TITLE -->
   <title>DX TRUST | MEDIA LIFESTYLE COX</title>
 
-  <!-- GOOGLE SEO -->
   <meta name="description" content="DX TRUST MEDIA LIFESTYLE COX একটি অনলাইন শপ ও রিসেলার প্ল্যাটফর্ম। পছন্দের পণ্য অর্ডার করুন, রিসেলার হিসেবে যুক্ত হন এবং আপনার ব্যবসা পরিচালনা করুন।">
-
   <meta name="robots" content="index, follow">
   <meta name="googlebot" content="index, follow">
-
   <meta name="author" content="DX TRUST MEDIA LIFESTYLE COX">
-
   <meta name="keywords" content="DX TRUST, DX TRUST Bangladesh, DX TRUST online shop, DX TRUST reseller, DX TRUST MEDIA LIFESTYLE COX">
 
-  <!-- CANONICAL URL -->
   <link rel="canonical" href="https://islamrobi955-crypto.github.io/dx-trust-pwa/">
-
-  <!-- GOOGLE SEARCH CONSOLE VERIFICATION -->
   <meta name="google-site-verification" content="RwU0pjt9HwQBIS6RYLn7oQ1m4oIbtFBI34Eew5lGfNw">
 
-  <!-- SOCIAL MEDIA SEO -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="DX TRUST | MEDIA LIFESTYLE COX">
   <meta property="og:description" content="DX TRUST-এর অনলাইন শপে পণ্য অর্ডার করুন এবং রিসেলার হিসেবে যুক্ত হন।">
@@ -35,7 +26,6 @@
   <meta name="twitter:title" content="DX TRUST | MEDIA LIFESTYLE COX">
   <meta name="twitter:description" content="DX TRUST অনলাইন শপ ও রিসেলার প্ল্যাটফর্ম।">
 
-  <!-- WEBSITE STRUCTURED DATA -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -47,10 +37,7 @@
   }
   </script>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
-
-  <!-- CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -78,15 +65,67 @@
 
     <div id="storeProducts">পণ্য লোড হচ্ছে...</div>
 
+    <!-- CUSTOMER PRODUCT DETAIL -->
+    <div id="productDetailModal" class="product-detail" style="display:none">
+
+      <button type="button" onclick="closeProductDetails()">
+        ফিরে যান
+      </button>
+
+      <h3 id="detailProductName">পণ্যের নাম</h3>
+
+      <div class="product-gallery">
+        <img
+          id="detailMainImage"
+          class="product-main-image"
+          src=""
+          alt="পণ্যের ছবি">
+
+        <div id="detailImageThumbnails" class="product-thumbnails"></div>
+      </div>
+
+      <p id="detailProductPrice" class="product-detail-price"></p>
+
+      <h3>পণ্যের বিবরণ</h3>
+      <div id="detailProductDescription" class="product-detail-description"></div>
+
+      <div id="detailSizeArea" style="display:none">
+        <h3>সাইজ নির্বাচন করুন</h3>
+        <div id="detailSizeOptions" class="size-options"></div>
+        <p id="detailSizeMessage" class="message"></p>
+      </div>
+
+      <label for="detailQuantity">পরিমাণ</label>
+      <input
+        id="detailQuantity"
+        type="number"
+        min="1"
+        value="1">
+
+      <button type="button" onclick="orderFromDetails()">
+        এই পণ্য অর্ডার করুন
+      </button>
+
+    </div>
+
+    <!-- CUSTOMER ORDER FORM -->
     <div id="orderForm" class="card" style="display:none">
+
       <h3>অর্ডার করুন</h3>
       <p id="selectedProduct"></p>
+
+      <div id="customerOrderSizeArea" style="display:none">
+        <h3>সাইজ নির্বাচন করুন</h3>
+        <div id="customerOrderSizeOptions" class="size-options"></div>
+        <p id="customerOrderSizeMessage" class="message"></p>
+      </div>
 
       <input id="customerName" placeholder="আপনার নাম">
       <input id="customerPhone" type="tel" placeholder="মোবাইল নম্বর">
 
       <textarea id="customerAddress" placeholder="সম্পূর্ণ ঠিকানা"></textarea>
 
+      <label for="orderQuantity">পরিমাণ</label>
       <input id="orderQuantity" type="number" min="1" value="1">
 
       <button onclick="placeOrder()">অর্ডার নিশ্চিত করুন</button>
@@ -194,33 +233,21 @@
       <h3>টাকা উত্তোলন</h3>
 
       <p>উত্তোলনযোগ্য মোট ব্যালেন্স:</p>
-
       <h2 id="withdrawableBalance">৳0</h2>
 
       <p>কমিশন, রেফারেল আয় ও বোনাস মিলিয়ে এই টাকা উত্তোলন করতে পারবে।</p>
 
       <label for="withdrawAmount">কত টাকা উত্তোলন করবে?</label>
-
-      <input
-        id="withdrawAmount"
-        type="number"
-        min="1"
-        step="0.01"
-        placeholder="টাকার পরিমাণ">
+      <input id="withdrawAmount" type="number" min="1" step="0.01" placeholder="টাকার পরিমাণ">
 
       <label for="withdrawMethod">পেমেন্ট মাধ্যম</label>
-
       <select id="withdrawMethod">
         <option value="bkash">bKash</option>
         <option value="nagad">Nagad</option>
       </select>
 
       <label for="withdrawNumber">যে নম্বরে টাকা নিতে চাও</label>
-
-      <input
-        id="withdrawNumber"
-        type="tel"
-        placeholder="01XXXXXXXXX">
+      <input id="withdrawNumber" type="tel" placeholder="01XXXXXXXXX">
 
       <button onclick="requestWithdrawal(event)">
         টাকা উত্তোলনের আবেদন করুন
@@ -235,9 +262,7 @@
 
       <h3>আমার উত্তোলনের আবেদন</h3>
 
-      <button onclick="loadResellerWithdrawals()">
-        আবেদন Refresh
-      </button>
+      <button onclick="loadResellerWithdrawals()">আবেদন Refresh</button>
 
       <div id="resellerWithdrawalList">
         আবেদনের তালিকা এখানে দেখা যাবে।
@@ -252,6 +277,36 @@
 
       <div id="resellerProducts">পণ্য লোড হচ্ছে...</div>
 
+      <div id="resellerProductDetail" class="product-detail" style="display:none">
+
+        <button type="button" onclick="closeResellerProductDetails()">
+          পণ্য তালিকায় ফিরে যান
+        </button>
+
+        <h3 id="resellerDetailProductName"></h3>
+
+        <div class="product-gallery">
+          <img
+            id="resellerDetailMainImage"
+            class="product-main-image"
+            src=""
+            alt="পণ্যের ছবি">
+
+          <div id="resellerDetailImageThumbnails" class="product-thumbnails"></div>
+        </div>
+
+        <p id="resellerDetailProductPrice" class="product-detail-price"></p>
+
+        <div id="resellerDetailProductDescription" class="product-detail-description"></div>
+
+        <div id="resellerDetailSizeArea" style="display:none">
+          <h3>সাইজ নির্বাচন করুন</h3>
+          <div id="resellerDetailSizeOptions" class="size-options"></div>
+          <p id="resellerDetailSizeMessage" class="message"></p>
+        </div>
+
+      </div>
+
       <input id="resellerCustomerName" placeholder="কাস্টমারের নাম">
 
       <input
@@ -263,6 +318,7 @@
         id="resellerCustomerAddress"
         placeholder="সম্পূর্ণ ঠিকানা"></textarea>
 
+      <label for="resellerQuantity">পরিমাণ</label>
       <input id="resellerQuantity" type="number" min="1" value="1">
 
       <button onclick="placeResellerOrder()">অর্ডার জমা দিন</button>
@@ -294,13 +350,11 @@
     <p id="adminName"></p>
 
     <div class="menu">
-
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="showPage('products')">Products</button>
       <button onclick="showPage('orders')">Orders</button>
       <button onclick="show('store')">Store</button>
       <button onclick="logout()">Logout</button>
-
     </div>
 
     <!-- ADMIN DASHBOARD HOME -->
@@ -323,9 +377,7 @@
         <label for="bonusAmount">বোনাসের পরিমাণ (৳)</label>
         <input id="bonusAmount" type="number" min="0" value="1000">
 
-        <button onclick="saveBonusSettings()">
-          বোনাস সেটিংস সংরক্ষণ
-        </button>
+        <button onclick="saveBonusSettings()">বোনাস সেটিংস সংরক্ষণ</button>
 
         <p id="bonusMsg" class="message"></p>
 
@@ -336,9 +388,7 @@
 
         <h3>রিসেলারদের বোনাসের হিসাব</h3>
 
-        <button onclick="loadAdminBonusReport()">
-          বোনাসের হিসাব দেখুন
-        </button>
+        <button onclick="loadAdminBonusReport()">বোনাসের হিসাব দেখুন</button>
 
         <div id="adminBonusReport">
           বোনাসের হিসাব এখানে দেখা যাবে।
@@ -351,9 +401,7 @@
 
         <h3>রেফারেল কমিশনের হিসাব</h3>
 
-        <button onclick="loadAdminReferralReport()">
-          রেফারেল হিসাব দেখুন
-        </button>
+        <button onclick="loadAdminReferralReport()">রেফারেল হিসাব দেখুন</button>
 
         <div id="adminReferralReport">
           রেফারেল হিসাব এখানে দেখা যাবে।
@@ -368,9 +416,7 @@
 
         <p>রিসেলারদের সব উত্তোলনের আবেদন এখানে দেখা যাবে।</p>
 
-        <button onclick="loadAdminWithdrawals()">
-          আবেদন Refresh করুন
-        </button>
+        <button onclick="loadAdminWithdrawals()">আবেদন Refresh করুন</button>
 
         <div id="adminWithdrawalList">
           উত্তোলনের আবেদন এখানে দেখা যাবে।
@@ -391,13 +437,26 @@
 
       <textarea
         id="productDescription"
-        placeholder="পণ্যের বিবরণ"></textarea>
+        placeholder="পণ্যের সম্পূর্ণ বিবরণ"></textarea>
 
       <input
         id="productPrice"
         type="number"
         min="0"
         placeholder="পণ্যের দাম">
+
+      <label for="productSizes">
+        পণ্যের সাইজ (ঐচ্ছিক)
+      </label>
+
+      <input
+        id="productSizes"
+        type="text"
+        placeholder="যেমন: 22, 24, 26, 28, 30">
+
+      <p class="small">
+        সাইজ না থাকলে এই ঘর খালি রাখবে। একাধিক সাইজ কমা দিয়ে আলাদা করবে।
+      </p>
 
       <label for="productImageFile">
         পণ্যের সর্বোচ্চ ৫টি ছবি নির্বাচন করুন
@@ -439,7 +498,9 @@
 
 <!-- APP JAVASCRIPT -->
 <script src="app.js"></script>
-  <script>
+
+<!-- SERVICE WORKER -->
+<script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("./sw.js")
@@ -451,8 +512,7 @@ if ("serviceWorker" in navigator) {
       });
   });
 }
-  </script>
-  
+</script>
 
 </body>
-      </html>
+</html>
