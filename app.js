@@ -737,24 +737,39 @@ async function loadProducts() {
   `).join("");
 }
 
-
 /* 16. DELETE PRODUCT */
 
 async function deleteProduct(id) {
-  if (!confirm("আপনি কি এই পণ্যটি মুছে ফেলতে চান?")) return;
-
-  const { error } = await db
-    .from("products")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    alert("পণ্য মুছতে সমস্যা হয়েছে।");
-    console.error(error);
+  if (!confirm("আপনি কি এই পণ্যটি মুছে ফেলতে চান?")) {
     return;
   }
 
-  alert("পণ্য মুছে ফেলা হয়েছে।");
+  const { data, error } = await db
+    .from("products")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    console.error("Delete Product Error:", error);
+
+    alert(
+      "পণ্য মুছতে সমস্যা হয়েছে।\n\n" +
+      "Error: " + error.message +
+      "\nCode: " + (error.code || "Unknown") +
+      "\nDetails: " + (error.details || "নেই")
+    );
+
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert("পণ্যটি মুছতে পারেনি। Database Permission পরীক্ষা করতে হবে।");
+    return;
+  }
+
+  alert("পণ্য সফলভাবে মুছে ফেলা হয়েছে!");
+
   await loadProducts();
   await loadStoreProducts();
 }
